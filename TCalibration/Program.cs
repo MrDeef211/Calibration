@@ -167,7 +167,7 @@
                 else
                     break;
 
-                if (double.TryParse(lines[1], out double t2))
+                if (double.TryParse(lines[1].Replace(',', '.'), out double t2))
                     @ref[index] = t2;
 
                 if (lines[2] == "*")
@@ -215,15 +215,15 @@
         {
             string separator = new string('-', 64);
             string header = "------ Отчет о монотонности (температура с нормированием) ------";
-            string verdict = $"Вердикт (Verdict):                         {report.Verdict}";
-            string sign = $"Знак (Sign):                               {(report.Sign > 0 ? "+" : "-")}";
-            string minAbsG = $"Мин. абс. G (MinAbsG):                     {report.MinAbsG:F6}";
-            string tAtMin = $"T при мин. G (TAtMin):                     {report.TAtMin:F4}";
-            string delta = $"Дельта (Delta):                            {report.Delta:E4}";
-            string meanAbsG = $"Средний абс. G (MeanAbsG):                 {report.MeanAbsG:F6}";
-            string grid = $"Сетка (Nt):                                {report.Nt}";
-            string violations = $"Кол-во нарушений (ViolationsCount):        {report.ViolationsCount}";
-            string tFirstViol = $"T первого нарушения (TAtFirstViolation):   {report.TAtFirstViolation:F4}";
+            string verdict =    $"Вердикт:                        {report.Verdict}";
+            string sign =       $"Знак производной:               {(report.Sign > 0 ? "+" : "-")}";
+            string minAbsG =    $"Мин. абс. G (Мин. производная): {report.MinAbsG:F6}";
+            string tAtMin =     $"T при мин. G:                   {report.TAtMin:F4}";
+            string delta =      $"Дельта G:                       {report.Delta:E4}";
+            string meanAbsG =   $"Средний абс. G:                 {report.MeanAbsG:F6}";
+            string grid =       $"Сетка:                          {report.Nt}";
+            string violations = $"Кол-во нарушений:               {report.ViolationsCount}";
+            string tFirstViol = $"T первого нарушения:            {report.TAtFirstViolation:F4}";
 
             Console.WriteLine();
             Console.WriteLine(header);
@@ -281,7 +281,7 @@
             }
             else if (standardDeviation > 0.01)
             {
-                status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (плохие данные).";
+                status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (высокая погрешность).";
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
                     "неравномерно, содержат сильные шумы (ошибки), либо точек недостаточно. " +
                     "Проверьте датчики и повторите замеры в других диапазонах.";
@@ -355,7 +355,7 @@
             {
                 line = !double.IsInfinity(et[i])
                     ? $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2}"
-                    : $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {0,15:p2}";
+                    : $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
@@ -440,7 +440,7 @@
 
                 line = !double.IsInfinity(et[i])
                     ? $"{t_ads[i],11:f3} {normilized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2}"
-                    : $"{t_ads[i],11:f3} {normilized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {0,15:p2}";
+                    : $"{t_ads[i],11:f3} {normilized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);

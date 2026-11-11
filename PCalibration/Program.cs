@@ -199,17 +199,17 @@ namespace Calibration
         {
             string separator = new string('-', 52);
             string header = $"--------------- Отчет о монотонности ---------------";
-            string verdict = $"Вердикт (Verdict):                       {report.Verdict}";
-            string sign = $"Знак (Sign):                             {(report.Sign > 0 ? "+" : "-" )}";
-            string minAbsG = $"Мин. абс. G (MinAbsG):                   {report.MinAbsG:F6}";
-            string uAtMin = $"U при мин. G (UAtMin):                   {report.UAtMin:F4}";
-            string vAtMin = $"V при мин. G (VAtMin):                   {report.VAtMin:F4}";
-            string delta = $"Дельта (Delta):                          {report.Delta:E4}";
-            string meanAbsG = $"Средний абс. G (MeanAbsG):               {report.MeanAbsG:F6}";
-            string grid = $"Сетка (Nu x Nv):                         {report.Nu} x {report.Nv}";
-            string violations = $"Кол-во нарушений (ViolationsCount):      {report.ViolationsCount}";
-            string uFirstViol = $"U первого нарушения (UAtFirstViolation): {report.UAtFirstViolation:F4}";
-            string vFirstViol = $"V первого нарушения (VAtFirstViolation): {report.VAtFirstViolation:F4}";
+            string verdict =    $"Вердикт:                        {report.Verdict}";
+            string sign =       $"Знак производной:               {(report.Sign > 0 ? "+" : "-" )}";
+            string minAbsG =    $"Мин. абс. G (Мин. производная): {report.MinAbsG:F6}";
+            string uAtMin =     $"U при мин. G:                   {report.UAtMin:F4}";
+            string vAtMin =     $"V при мин. G:                   {report.VAtMin:F4}";
+            string delta =      $"Дельта G:                       {report.Delta:E4}";
+            string meanAbsG =   $"Средний абс. G:                 {report.MeanAbsG:F6}";
+            string grid =       $"Сетка (Nu x Nv):                {report.Nu} x {report.Nv}";
+            string violations = $"Кол-во нарушений:               {report.ViolationsCount}";
+            string uFirstViol = $"U первого нарушения:            {report.UAtFirstViolation:F4}";
+            string vFirstViol = $"V первого нарушения:            {report.VAtFirstViolation:F4}";
 
             Console.WriteLine();
             Console.WriteLine(header);
@@ -309,7 +309,7 @@ namespace Calibration
             }
             else if (fitReport.StandardDeviation > 0.1)
             {
-                status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (плохие данные).";
+                status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (высокая погрешность).";
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
                     "неравномерно или содержат сильные шумы (ошибки), либо точек недостаточно." +
                     " Проверьте датчики и повторите замеры в других диапазонах.";
@@ -384,7 +384,7 @@ namespace Calibration
                     ? $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normilized[i],8:f3} {t_normilized[i],8:f3}" +
                     $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {ep[i],15:p2}"
                     : $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normilized[i],8:f3} {t_normilized[i],8:f3}" +
-                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {0,15:p2}";
+                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {"деление на 0",15}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
