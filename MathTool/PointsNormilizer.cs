@@ -10,27 +10,36 @@ namespace Calibration
 
         public double Tolerance { get; init; }
 
+        public double Center { get; init; }
+
+        public double Half { get; init; }
+
+        public double InvHalf { get; init; }
+
+
+
         public PointsNormilizer(double min, double max, double tolerance = 0)
         {
             Max = max;
             Min = min;
             Tolerance = tolerance;
+            Center = (min + max) / 2;
+            Half = (max - min) / 2;
+            InvHalf = 2 / (max - min);
         }
 
         public double[] Normilize(double[] values)
         {
             ValidateRawPoints(values);
-            double center = (Min + Max) / 2;
-            double invHalf = 2 / (Max - Min);
             double[] result = new double[values.Length];
 
             // TODO поискать вариант получше
             for (int i = 0; i < result.Length; i++)
             {
-                result[i] = values[i] - center;
+                result[i] = values[i] - Center;
             }
 
-            LinearAlgebraControl.Provider.ScaleArray(invHalf, result, result);
+            LinearAlgebraControl.Provider.ScaleArray(InvHalf, result, result);
 
             return result;
         }
@@ -38,9 +47,7 @@ namespace Calibration
         public double Normilize(double value)
         {
             ValidateRawPoints([value]);
-            double center = (Min + Max) / 2;
-            double half = (Max - Min) / 2;
-            return (value - center) / half;
+            return (value - Center) *  InvHalf;
         }
 
         private void ValidateRawPoints(double[] values)
