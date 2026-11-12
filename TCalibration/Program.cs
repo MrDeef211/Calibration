@@ -215,13 +215,13 @@
         {
             string separator = new string('-', 64);
             string header = "------ Отчет о монотонности (температура с нормированием) ------";
-            string verdict =    $"Вердикт:                        {report.Verdict}";
-            string sign =       $"Знак производной:               {(report.Sign > 0 ? "+" : "-")}";
-            string minAbsG =    $"Мин. абс. G (Мин. производная): {report.MinAbsG:F6}";
-            string tAtMin =     $"T при мин. G:                   {report.TAtMin:F4}";
-            string delta =      $"Дельта G:                       {report.Delta:E4}";
-            string meanAbsG =   $"Средний абс. G:                 {report.MeanAbsG:F6}";
-            string grid =       $"Сетка:                          {report.Nt}";
+            string verdict = $"Вердикт:                        {report.Verdict}";
+            string sign = $"Знак производной:               {(report.Sign > 0 ? "+" : "-")}";
+            string minAbsG = $"Мин. абс. G (Мин. производная): {report.MinAbsG:F6}";
+            string tAtMin = $"T при мин. G:                   {report.TAtMin:F4}";
+            string delta = $"Дельта G:                       {report.Delta:E4}";
+            string meanAbsG = $"Средний абс. G:                 {report.MeanAbsG:F6}";
+            string grid = $"Сетка:                          {report.Nt}";
             string violations = $"Кол-во нарушений:               {report.ViolationsCount}";
             string tFirstViol = $"T первого нарушения:            {report.TAtFirstViolation:F4}";
 

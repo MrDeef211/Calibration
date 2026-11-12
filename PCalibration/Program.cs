@@ -18,7 +18,7 @@ namespace Calibration
                 || args[1].Contains(".svg"))
                 ? args[1] : fileNameOnly + "Result.txt";
 
-            (int p_pow, int t_pow, int[] t_calibrationIndexes, 
+            (int p_pow, int t_pow, int[] t_calibrationIndexes,
                 double[] p_ads, double[] t_ads, double[] p_ref) = ReadFile(dataFileName);
 
             double[] calibrationt_p_ads = new double[t_calibrationIndexes.Length];
@@ -199,14 +199,14 @@ namespace Calibration
         {
             string separator = new string('-', 52);
             string header = $"--------------- Отчет о монотонности ---------------";
-            string verdict =    $"Вердикт:                        {report.Verdict}";
-            string sign =       $"Знак производной:               {(report.Sign > 0 ? "+" : "-" )}";
-            string minAbsG =    $"Мин. абс. G (Мин. производная): {report.MinAbsG:F6}";
-            string uAtMin =     $"U при мин. G:                   {report.UAtMin:F4}";
-            string vAtMin =     $"V при мин. G:                   {report.VAtMin:F4}";
-            string delta =      $"Дельта G:                       {report.Delta:E4}";
-            string meanAbsG =   $"Средний абс. G:                 {report.MeanAbsG:F6}";
-            string grid =       $"Сетка (Nu x Nv):                {report.Nu} x {report.Nv}";
+            string verdict = $"Вердикт:                        {report.Verdict}";
+            string sign = $"Знак производной:               {(report.Sign > 0 ? "+" : "-")}";
+            string minAbsG = $"Мин. абс. G (Мин. производная): {report.MinAbsG:F6}";
+            string uAtMin = $"U при мин. G:                   {report.UAtMin:F4}";
+            string vAtMin = $"V при мин. G:                   {report.VAtMin:F4}";
+            string delta = $"Дельта G:                       {report.Delta:E4}";
+            string meanAbsG = $"Средний абс. G:                 {report.MeanAbsG:F6}";
+            string grid = $"Сетка (Nu x Nv):                {report.Nu} x {report.Nv}";
             string violations = $"Кол-во нарушений:               {report.ViolationsCount}";
             string uFirstViol = $"U первого нарушения:            {report.UAtFirstViolation:F4}";
             string vFirstViol = $"V первого нарушения:            {report.VAtFirstViolation:F4}";
@@ -278,7 +278,7 @@ namespace Calibration
         }
 
         static void PrintSummaryReport(
-            PressureMonotonicityReport monoReport, 
+            PressureMonotonicityReport monoReport,
             FitReport fitReport, string path)
         {
             string separator = new string('=', 64);
@@ -313,7 +313,7 @@ namespace Calibration
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
                     "неравномерно или содержат сильные шумы (ошибки), либо точек недостаточно." +
                     " Проверьте датчики и повторите замеры в других диапазонах.";
-            }    
+            }
             else
             {
                 status = "УСПЕХ: Калибровка завершена успешно!";

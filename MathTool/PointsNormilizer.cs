@@ -52,7 +52,7 @@ namespace Calibration
                 if (value > Max + Tolerance * length || value < Min - Tolerance * length)
                     throw new ArgumentException(
                         $"значение точки {value} выходит за диапазон "
-                        + $"{Min} - {Max} с запасом {Tolerance * 100}%");
+                        + $"{Min} - {Max} с запасом {Tolerance:p0}%");
             }
         }
     }
