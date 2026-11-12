@@ -16,10 +16,11 @@ namespace Calibration
 
         public double InvHalf { get; init; }
 
-
-
         public PointsNormilizer(double min, double max, double tolerance = 0)
         {
+            if (!(max > min))
+                throw new ArgumentException($"max ({max}) должен быть больше min ({min})");
+
             Max = max;
             Min = min;
             Tolerance = tolerance;
@@ -47,7 +48,7 @@ namespace Calibration
         public double Normilize(double value)
         {
             ValidateRawPoints([value]);
-            return (value - Center) *  InvHalf;
+            return (value - Center) * InvHalf;
         }
 
         private void ValidateRawPoints(double[] values)
