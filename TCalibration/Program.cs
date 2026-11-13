@@ -16,9 +16,19 @@
                 || args[1].Contains(".svg"))
                 ? args[1] : fileNameOnly + "Result.txt";
 
+            int pow;
+            int[] t_calibrationIndexes;
+            double[] t_ads, t_ref;
 
-
-            (int pow, int[] t_calibrationIndexes, double[] t_ads, double[] t_ref) = ReadFile(dataFileName);
+            try
+            {
+                (pow, t_calibrationIndexes, t_ads, t_ref) = ReadFile(dataFileName);
+            }
+            catch (Exception ex)
+            {
+                Print(ex, resultFileName);
+                return;
+            }
 
             double[] calibrationt_ads = new double[t_calibrationIndexes.Length];
             double[] calibrationt_ref = new double[t_calibrationIndexes.Length];
@@ -77,10 +87,12 @@
 
             double[] normilizeCoeffcients = [];
 
-            PointsNormilizer normilizer = new PointsNormilizer(min, max, 0.1);
+            PointsNormilizer normilizer;
 
             try
             {
+                normilizer = new PointsNormilizer(min, max, 0.1);
+
                 normilizeCoeffcients = MathTool.Polyfit1(
                     pow,
                     normilizer.Normilize(calibrationt_ads),
@@ -130,13 +142,17 @@
 
         static (int pow, int[] calibrationIndexes, double[] ads, double[] refer) ReadFile(string path)
         {
+            if (path == null || !File.Exists(path))
+                throw new ArgumentNullException("Отсутствует файл с данными");
+
             int lineCount = 0;
             using (var reader = new StreamReader(path))
             {
                 while (reader.ReadLine() != null) lineCount++;
             }
 
-            if (lineCount <= 2) return (0, [], [], []);
+            if (lineCount <= 2) throw new Exception(
+                        "Пустой файл или нет данных");
 
             double[] ads = new double[lineCount - 2];
             double[] @ref = new double[lineCount - 2];
@@ -149,7 +165,8 @@
             string? powString = stream.ReadLine()?.Substring(4);
 
             if (powString == null || !int.TryParse(powString, out pow))
-                return (0, [], [], []);
+                throw new Exception(
+                        "Ошибка при чтении показателя степени полинома");
 
             // Пропускаю заголовки
             stream.ReadLine();
@@ -161,6 +178,14 @@
                 if (line == null) break;
 
                 string[] lines = line.Split(';');
+                if (lines.Length < 2)
+                    lines = lines[0].Split(" ");
+                if (lines.Length < 2)
+                    lines = lines[0].Split("\t");
+                if (lines.Length < 2)
+                    throw new Exception(
+                        "Неверный формат файла: неправильный или отсутствующий " +
+                        "разделитель или неправильное число столбцов");
 
                 if (double.TryParse(lines[0].Replace(',', '.'), out double t1))
                     ads[index] = t1;
@@ -170,7 +195,7 @@
                 if (double.TryParse(lines[1].Replace(',', '.'), out double t2))
                     @ref[index] = t2;
 
-                if (lines[2] == "*")
+                if (lines.Length > 2 && lines[2] == "*")
                 {
                     indexes[calibratedPoints] = index;
                     calibratedPoints++;
