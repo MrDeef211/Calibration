@@ -1,4 +1,7 @@
 ﻿using System.Text;
+using Visualization;
+
+
 
 namespace Calibration
 {
@@ -31,6 +34,12 @@ namespace Calibration
                 Print(ex, resultFileName);
                 return;
             }
+
+            #if VISUAL
+
+            Visualizer.DrawPoints(p_ads, t_ads, p_ref, "Входные данные");
+
+            #endif
 
             double[] calibrationt_p_ads = new double[t_calibrationIndexes.Length];
             double[] calibrationt_t_ads = new double[t_calibrationIndexes.Length];
@@ -95,7 +104,7 @@ namespace Calibration
                 t_normilizer.Normilize(t_ads),
                 t_normilizer,
                 p_ref, p, dp,
-                MathTool.PointwiseQuotient(dp, p_ref)
+                MathTool.PointWiseQuotient(dp, p_ref)
             );
 
             PressureMonotonicityReport monotonicityReport = new(coefficients);
@@ -113,6 +122,12 @@ namespace Calibration
             Print(fitReport, resultFileName);
 
             PrintSummaryReport(monotonicityReport, fitReport, resultFileName);
+
+            #if VISUAL
+
+            Visualizer.DrawBoth(coefficients, p_normilizer.Normilize(p_ads), t_normilizer.Normilize(t_ads), p_ref, "Полином", "Эталон");
+
+            #endif
 
             #endregion
         }
@@ -146,7 +161,7 @@ namespace Calibration
             string? powString = stream.ReadLine();
 
             if (powString == null)
-                new Exception(
+                throw new Exception(
                         "Пустой файл или нет данных");
 
             string[] powStrings = powString.Split(';');
@@ -169,6 +184,8 @@ namespace Calibration
                     lines = lines[0].Split(" ");
                 if (lines.Length < 3)
                     lines = lines[0].Split("\t");
+                if (lines.Length == 1 && lines[0] == "")
+                    break;
                 if (lines.Length < 3)
                     throw new Exception(
                         "Неверный формат файла: неправильный или отсутствующий " +
@@ -181,8 +198,6 @@ namespace Calibration
 
                 if (double.TryParse(lines[1].Replace(',', '.'), out double t))
                     t_ads[index] = t;
-                else
-                    break;
 
                 if (double.TryParse(lines[2].Replace(',', '.'), out double p2))
                     @ref[index] = p2;
@@ -207,7 +222,7 @@ namespace Calibration
                 for (calibratedPoints = 0; calibratedPoints < p_ads.Length; calibratedPoints++)
                     indexes[calibratedPoints] = calibratedPoints;
 
-            if (calibratedPoints < p_ads.Length)
+            if (calibratedPoints < indexes.Length)
                 Array.Resize(ref indexes, calibratedPoints);
 
             return (p_pow, t_pow, indexes, p_ads, t_ads, @ref);
@@ -336,12 +351,12 @@ namespace Calibration
                     "неравномерно или содержат сильные шумы (ошибки). Проверьте датчики и " +
                     "повторите замеры в других диапазонах.";
             }
-            else if (fitReport.StandardDeviation > 0.1)
+            else if (fitReport.StandardDeviation > 0.09)
             {
                 status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (высокая погрешность).";
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
                     "неравномерно или содержат сильные шумы (ошибки), либо точек недостаточно." +
-                    " Проверьте датчики и повторите замеры в других диапазонах.";
+                    " Проверьте датчики и повторите замеры в других диапазонах, либо увеличьте степень полинома.";
             }
             else
             {
@@ -374,13 +389,13 @@ namespace Calibration
         static void WriteFile(
             string path,
             string head,
-            double[,] coefs,
+            double[,] coeffs,
             double[] p_ads,
             double[] t_ads,
-            double[] p_normilized,
-            PointsNormilizer p_normilizer,
-            double[] t_normilized,
-            PointsNormilizer t_normilizer,
+            double[] p_normalized,
+            PointsNormilizer p_normalizer,
+            double[] t_normalized,
+            PointsNormilizer t_normalizer,
             double[] t_ref,
             double[] p,
             double[] dp,
@@ -410,9 +425,9 @@ namespace Calibration
             for (int i = 0; i < p.Length; i++)
             {
                 line = !double.IsInfinity(ep[i])
-                    ? $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normilized[i],8:f3} {t_normilized[i],8:f3}" +
+                    ? $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
                     $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {ep[i],15:p2}"
-                    : $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normilized[i],8:f3} {t_normilized[i],8:f3}" +
+                    : $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
                     $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {"деление на 0",15}";
 
                 stream.WriteLine(line);
@@ -422,21 +437,21 @@ namespace Calibration
             stream.WriteLine("");
             Console.WriteLine("");
 
-            line = $"Диапазон нормирования АЦП 1: ({p_normilizer.Min} - " +
-                $"{p_normilizer.Max}) +- {p_normilizer.Tolerance:p0}";
+            line = $"Диапазон нормирования АЦП 1: ({p_normalizer.Min} - " +
+                $"{p_normalizer.Max}) +- {p_normalizer.Tolerance:p0}";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
-            line = $"Диапазон нормирования АЦП 2: ({t_normilizer.Min} - " +
-                $"{t_normilizer.Max}) +- {t_normilizer.Tolerance:p0}";
+            line = $"Диапазон нормирования АЦП 2: ({t_normalizer.Min} - " +
+                $"{t_normalizer.Max}) +- {t_normalizer.Tolerance:p0}";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
             // Коэффициенты 
-            int n = coefs.GetLength(0) - 1;
-            int m = coefs.GetLength(1) - 1;
+            int n = coeffs.GetLength(0) - 1;
+            int m = coeffs.GetLength(1) - 1;
 
             const int w = 16;
 
@@ -474,7 +489,7 @@ namespace Calibration
 
                 for (int j = 0; j <= m; j++)
                 {
-                    double c = coefs[i, j];
+                    double c = coeffs[i, j];
                     string s;
 
                     if (c == 0.0)

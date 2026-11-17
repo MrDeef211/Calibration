@@ -164,12 +164,12 @@
             int violations = 0;
             double uFirstViol = double.NaN, vFirstViol = double.NaN;
 
+            Span<double> c = stackalloc double[n + 1];
             for (int iv = 0; iv < nv; iv++)
             {
                 double v = -1.0 + iv * vStep;
                 if (iv == nv - 1) v = 1.0;
-
-                Span<double> c = stackalloc double[n + 1];
+                
                 for (int i = 0; i <= n; i++)
                 {
                     double ci = A[i, m];

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.12.35527.113
+# Visual Studio Version 18
+VisualStudioVersion = 18.12.12405.243
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCalibration", "TCalibration\TCalibration.csproj", "{BB575D6C-9712-4B37-BCD9-382C1FA4B709}"
 EndProject
@@ -9,26 +9,44 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCalibration", "PCalibratio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathTool", "MathTool\MathTool.csproj", "{12415A3C-E923-433D-981A-661E7B3C18DE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Visualization", "Visualization\Visualization.csproj", "{4D8B85BF-3AEA-410A-AAB5-53033F32E392}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
+		Visual|Any CPU = Visual|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{BB575D6C-9712-4B37-BCD9-382C1FA4B709}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BB575D6C-9712-4B37-BCD9-382C1FA4B709}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB575D6C-9712-4B37-BCD9-382C1FA4B709}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BB575D6C-9712-4B37-BCD9-382C1FA4B709}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB575D6C-9712-4B37-BCD9-382C1FA4B709}.Visual|Any CPU.ActiveCfg = Visual|Any CPU
+		{BB575D6C-9712-4B37-BCD9-382C1FA4B709}.Visual|Any CPU.Build.0 = Visual|Any CPU
 		{C18843E3-0946-4FA2-9CDE-C1125AE41DE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C18843E3-0946-4FA2-9CDE-C1125AE41DE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C18843E3-0946-4FA2-9CDE-C1125AE41DE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C18843E3-0946-4FA2-9CDE-C1125AE41DE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C18843E3-0946-4FA2-9CDE-C1125AE41DE8}.Visual|Any CPU.ActiveCfg = Visual|Any CPU
+		{C18843E3-0946-4FA2-9CDE-C1125AE41DE8}.Visual|Any CPU.Build.0 = Visual|Any CPU
 		{12415A3C-E923-433D-981A-661E7B3C18DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{12415A3C-E923-433D-981A-661E7B3C18DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{12415A3C-E923-433D-981A-661E7B3C18DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{12415A3C-E923-433D-981A-661E7B3C18DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12415A3C-E923-433D-981A-661E7B3C18DE}.Visual|Any CPU.ActiveCfg = Release|Any CPU
+		{12415A3C-E923-433D-981A-661E7B3C18DE}.Visual|Any CPU.Build.0 = Release|Any CPU
+		{4D8B85BF-3AEA-410A-AAB5-53033F32E392}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D8B85BF-3AEA-410A-AAB5-53033F32E392}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D8B85BF-3AEA-410A-AAB5-53033F32E392}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D8B85BF-3AEA-410A-AAB5-53033F32E392}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D8B85BF-3AEA-410A-AAB5-53033F32E392}.Visual|Any CPU.ActiveCfg = Release|Any CPU
+		{4D8B85BF-3AEA-410A-AAB5-53033F32E392}.Visual|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7D1EA865-C694-41E0-903C-9D85A559E60E}
 	EndGlobalSection
 EndGlobal

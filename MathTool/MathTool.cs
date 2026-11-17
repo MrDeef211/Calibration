@@ -1,4 +1,7 @@
-﻿using MathNet.Numerics;
+﻿// Ignore Spelling: xin Polyfit Heteroskedasticity Rss
+
+using MathNet.Numerics;
+using MathNet.Numerics.Distributions;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Factorization;
 using MathNet.Numerics.Providers.LinearAlgebra;
@@ -22,7 +25,7 @@ namespace Calibration
         }
         public static string ToString(this double? d, int precision)
         {
-            return d.HasValue ? Math.Round(d.Value, precision).ToString() : string.Empty;
+            return d.HasValue ? Math.Round(d.Value, precision).ToString() : string.Empty;          
         }
         public static string ToString(this double d, int precision)
         {
@@ -36,7 +39,7 @@ namespace Calibration
             return result;
         }
 
-        public static double[] PointwiseQuotient(double[] x, double[] y)
+        public static double[] PointWiseQuotient(double[] x, double[] y)
         {
             Vector<double> v1 = Vector<double>.Build.Dense(x);
             Vector<double> v2 = Vector<double>.Build.Dense(y);
@@ -225,6 +228,32 @@ namespace Calibration
             return [.. r.Column(0)];
         }
 
+        public static double[] Polyfit1(int pow, double[] xin, double[] yin, double[] win)
+        {
+            int n = xin.Length;
+            var x = Matrix<double>.Build.Dense(rows: n, columns: pow + 1);
+            for (int row = 0; row < n; ++row)
+                for (int col = 0; col < x.ColumnCount; ++col)
+                    x[row, col] = Math.Pow(xin[row], col);
+
+            var y = Matrix<double>.Build.Dense(rows: n, 1);
+            for (int row = 0; row < n; ++row)
+                y[row, 0] = yin[row];
+
+            var w = Matrix<double>.Build.DiagonalIdentity(n);
+
+            for (int i = 0; i < n; i++)
+                w[i, i] = win[i];
+
+            var xt = x.Transpose();
+            var a = xt * w * x;
+            var an = a.Inverse();
+            var b = xt * w * y;
+            var r = an * b;
+
+            return [.. r.Column(0)];
+        }
+
         public static double[,] Polyfit2(
             int p_pow,
             int t_pow,
@@ -304,6 +333,128 @@ namespace Calibration
         //    return A;
         //}
 
+        public static bool HasHeteroskedasticity(
+            double[] x, double[] y, int pow = 1,
+            double alpha = 0.05, double dropFraction = 0.15)
+        {
+            int n = x.Length;
+            int drop = (int)(n * dropFraction);
+            int n1 = (n - drop) / 2;
+            int n2 = n - drop - n1;
+
+            if (n1 <= pow + 1 || n2 <= pow + 1)
+                throw new ArgumentException(
+                    $"Слишком мало точек для теста Голдфелда–Квандта: " +
+                    $"n1={n1}, n2={n2}, нужно > {pow + 1} в каждой группе");
+
+            var idx = Enumerable.Range(0, n).OrderBy(i => x[i]).ToArray();
+
+            double[] x1 = new double[n1], y1 = new double[n1];
+            for (int i = 0; i < n1; i++)
+            {
+                x1[i] = x[idx[i]];
+                y1[i] = y[idx[i]];
+            }
+
+            double[] x2 = new double[n2], y2 = new double[n2];
+            for (int i = 0; i < n2; i++)
+            {
+                x2[i] = x[idx[n - n2 + i]];
+                y2[i] = y[idx[n - n2 + i]];
+            }
+
+            double rss1 = CalculateRss(x1, y1, pow);
+            double rss2 = CalculateRss(x2, y2, pow);
+
+            int df1 = n1 - (pow + 1);
+            int df2 = n2 - (pow + 1);
+
+            double mse1 = rss1 / df1;
+            double mse2 = rss2 / df2;
+
+            double F;
+            double pValue;
+
+            if (mse2 >= mse1)
+            {
+                F = mse2 / mse1;
+                pValue = 2.0 * (1.0 - FisherSnedecor.CDF(df2, df1, F));
+            }
+            else
+            {
+                F = mse1 / mse2;
+                pValue = 2.0 * (1.0 - FisherSnedecor.CDF(df1, df2, F));
+            }
+
+            pValue = Math.Min(1.0, pValue);
+
+            return pValue < alpha;
+
+        }
+
+        public static double[] GetWeights(double[] x, double[] y, int pow)
+        {
+            int n = x.Length;
+
+            var coeffs = Polyfit1(pow, x, y);
+
+            double[] residuals = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                double yPred = 0;
+                for (int j = 0; j <= pow; j++)
+                    yPred += coeffs[j] * Math.Pow(x[i], j);
+                residuals[i] = y[i] - yPred;
+            }
+
+            double[] sqRes = residuals.Select(r => r * r).ToArray();
+
+            var varCoeffs = Polyfit1(1, x, sqRes); 
+
+            double[] weights = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                double variance = varCoeffs[0] + varCoeffs[1] * x[i];
+                if (variance <= 0) variance = 1e-12; 
+                weights[i] = 1.0 / variance;
+            }
+            return weights;
+        }
+
+        public static double[] GetWeights(double[] x, double[] dx)
+        {
+            int n = dx.Length;
+
+            double[] sqRes = dx.Select(r => r * r).ToArray();
+
+            var varCoeffs = Polyfit1(1, x, sqRes);
+
+            double[] weights = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                double variance = varCoeffs[0] + varCoeffs[1] * x[i];
+                if (variance <= 0) variance = 1e-12;
+                weights[i] = 1.0 / variance;
+            }
+            return weights;
+        }
+
+        private static double CalculateRss(double[] x, double[] y, int pow)
+        {
+            int n = x.Length;
+            var X = Matrix<double>.Build.Dense(n, pow + 1);
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j <= pow; j++)
+                    X[i, j] = Math.Pow(x[i], j);
+
+            var Y = Vector<double>.Build.Dense(y);
+            var Xt = X.Transpose();
+            var beta = (Xt * X).Solve(Xt * Y);
+
+            var residuals = X * beta - Y;
+            return residuals.DotProduct(residuals);
+        }
+
         internal static Matrix<double> BuildDesignMatrix(
             int p_pow,
             int t_pow,
@@ -313,16 +464,18 @@ namespace Calibration
             int K = p_ads.Length;
             int L = (p_pow + 1) * (t_pow + 1);
             var H = Matrix<double>.Build.Dense(K, L);
+
+            Span<double> upow = stackalloc double[p_pow + 1];
+            Span<double> vpow = stackalloc double[t_pow + 1];
+
             for (int k = 0; k < K; k++)
             {
                 double u = p_ads[k];
                 double v = t_ads[k];
-
-                Span<double> upow = stackalloc double[p_pow + 1];
+                
                 upow[0] = 1.0;
                 for (int i = 1; i <= p_pow; i++) upow[i] = upow[i - 1] * u;
-
-                Span<double> vpow = stackalloc double[t_pow + 1];
+                
                 vpow[0] = 1.0;
                 for (int j = 1; j <= t_pow; j++) vpow[j] = vpow[j - 1] * v;
 

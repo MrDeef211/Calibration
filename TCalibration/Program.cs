@@ -1,4 +1,8 @@
-﻿namespace Calibration
+﻿// Ignore Spelling: coefs
+
+using Visualization;
+
+namespace Calibration
 {
     internal class Program
     {
@@ -29,6 +33,12 @@
                 Print(ex, resultFileName);
                 return;
             }
+
+            #if VISUAL
+
+            Visualizer.DrawPoints(t_ads, t_ref, "Входные данные");
+
+            #endif
 
             double[] calibrationt_ads = new double[t_calibrationIndexes.Length];
             double[] calibrationt_ref = new double[t_calibrationIndexes.Length];
@@ -71,7 +81,7 @@
                 "Без нормализации",
                 coeffcients,
                 t_ads, t_ref, t, dt,
-                MathTool.PointwiseQuotient(dt, t_ref)
+                MathTool.PointWiseQuotient(dt, t_ref)
             );
 
             double deviation = MathTool.GetStandardDeviation(dt);
@@ -121,7 +131,7 @@
                 normilizer.Normilize(t_ads),
                 normilizer,
                 t_ref, t, dt,
-                MathTool.PointwiseQuotient(dt, t_ref),
+                MathTool.PointWiseQuotient(dt, t_ref),
                 true
             );
 
@@ -135,7 +145,85 @@
 
             PrintSummaryReport(report, normilizeDeviation, resultFileName);
 
+            #if VISUAL
+
+            Visualizer.DrawBoth(normilizeCoeffcients, normilizer.Normilize(t_ads), t_ref, "Полином", "Эталон");
+
+            #endif
+
             #endregion
+
+            #if DEBUG
+
+            bool hasHeteroscedasticity = false;
+
+            try
+            {
+                hasHeteroscedasticity = MathTool.HasHeteroskedasticity(calibrationt_ads, calibrationt_ref, 1);
+            }
+            catch (Exception ex)
+            {
+                Print(ex, resultFileName);
+            }
+
+            Print($"{(hasHeteroscedasticity ? "Данные гетероскедастичны" : "Данные гомоскедастичны")}", resultFileName);
+
+            // ЗАВЕРШАЕТ ПРОГРАММУ, ПОМЕНЯТЬ ЕСЛИ ПОСЛЕ ЭТОГО РЕГИОНА БУДЕТ ДРУГОЙ КОД
+            if (!hasHeteroscedasticity)
+                return;
+
+            #region Температура с нормализацией и матрицей весов (если данные гетероскедастичны)
+
+            try
+            {
+                double[] heteroscedasticityWeights = MathTool.GetWeights(t, dt);
+
+                normilizeCoeffcients = MathTool.Polyfit1(
+                    pow,
+                    normilizer.Normilize(calibrationt_ads),
+                    calibrationt_ref,
+                    heteroscedasticityWeights
+                );
+
+                t = MathTool.Calculate(
+                    normilizeCoeffcients,
+                    normilizer.Normilize(t_ads)
+                );
+
+                dt = MathTool.Difference(t, t_ref);
+            }
+            catch (Exception ex)
+            {
+                Print(ex, resultFileName, true);
+                return;
+            }
+
+
+            WriteFile(
+                resultFileName,
+                "С нормализацией и матрицей весов",
+                normilizeCoeffcients,
+                t_ads,
+                normilizer.Normilize(t_ads),
+                normilizer,
+                t_ref, t, dt,
+                MathTool.PointWiseQuotient(dt, t_ref),
+                true
+            );
+
+            normilizeDeviation = MathTool.GetStandardDeviation(dt);
+
+            Print(normilizeDeviation, resultFileName);
+
+            report = new TemperatureMonotonicityReport(coeffcients);
+
+            Print(report, resultFileName);
+
+            PrintSummaryReport(report, normilizeDeviation, resultFileName);
+
+            #endregion
+            #endif
+
         }
 
         #region Чтение
@@ -182,6 +270,8 @@
                     lines = lines[0].Split(" ");
                 if (lines.Length < 2)
                     lines = lines[0].Split("\t");
+                if (lines.Length == 1 && lines[0] == "")
+                    break;
                 if (lines.Length < 2)
                     throw new Exception(
                         "Неверный формат файла: неправильный или отсутствующий " +
@@ -214,7 +304,7 @@
                 for (calibratedPoints = 0; calibratedPoints < ads.Length; calibratedPoints++)
                     indexes[calibratedPoints] = calibratedPoints;
 
-            if (calibratedPoints < ads.Length)
+            if (calibratedPoints < indexes.Length)
                 Array.Resize(ref indexes, calibratedPoints);
 
             return (pow, indexes, ads, @ref);
@@ -233,6 +323,16 @@
 
             using StreamWriter stream = new(path, true);
             stream.WriteLine(deviation);
+            stream.WriteLine();
+        }
+
+        static void Print(string text, string path)
+        {
+            Console.WriteLine(text);
+            Console.WriteLine();
+
+            using StreamWriter stream = new(path, true);
+            stream.WriteLine(text);
             stream.WriteLine();
         }
 
@@ -304,12 +404,12 @@
                     "неравномерно или содержат сильные шумы (ошибки). Проверьте датчики и " +
                     "повторите замеры в других диапазонах.";
             }
-            else if (standardDeviation > 0.01)
+            else if (standardDeviation > 0.09)
             {
                 status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (высокая погрешность).";
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
                     "неравномерно, содержат сильные шумы (ошибки), либо точек недостаточно. " +
-                    "Проверьте датчики и повторите замеры в других диапазонах.";
+                    "Проверьте датчики и повторите замеры в других диапазонах, либо увеличьте степень полинома.";
             }
             else
             {
@@ -385,12 +485,12 @@
                 stream.WriteLine(line);
                 Console.WriteLine(line);
             }
-            // Коэфициенты
+            // Коэффициенты
             stream.WriteLine("");
             Console.WriteLine("");
 
-            stream.Write("Коэфициенты = ");
-            Console.Write("Коэфициенты = ");
+            stream.Write("Коэффициенты = ");
+            Console.Write("Коэффициенты = ");
 
             for (int i = coefs.Length - 1; i >= 0; i--)
             {
@@ -431,10 +531,10 @@
         static void WriteFile(
             string path,
             string head,
-            double[] coefs,
+            double[] coeffs,
             double[] t_ads,
-            double[] normilized,
-            PointsNormilizer normilizer,
+            double[] t_normalized,
+            PointsNormilizer t_normalizer,
             double[] t_ref,
             double[] t,
             double[] dt,
@@ -464,8 +564,8 @@
             {
 
                 line = !double.IsInfinity(et[i])
-                    ? $"{t_ads[i],11:f3} {normilized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2}"
-                    : $"{t_ads[i],11:f3} {normilized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15}";
+                    ? $"{t_ads[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2}"
+                    : $"{t_ads[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
@@ -474,32 +574,32 @@
             stream.WriteLine("");
             Console.WriteLine("");
 
-            line = $"Диапазон нормирования: ({normilizer.Min} - {normilizer.Max}) +- {normilizer.Tolerance:p0}";
+            line = $"Диапазон нормирования: ({t_normalizer.Min} - {t_normalizer.Max}) +- {t_normalizer.Tolerance:p0}";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
-            // Коэфициенты
+            // Коэффициенты
             stream.WriteLine("");
             Console.WriteLine("");
 
-            stream.Write("Коэфициенты = ");
-            Console.Write("Коэфициенты = ");
+            stream.Write("Коэффициенты = ");
+            Console.Write("Коэффициенты = ");
 
-            for (int i = coefs.Length - 1; i >= 0; i--)
+            for (int i = coeffs.Length - 1; i >= 0; i--)
             {
-                if (Math.Abs(coefs[i]) >= 0.001 && Math.Abs(coefs[i]) < 1)
+                if (Math.Abs(coeffs[i]) >= 0.001 && Math.Abs(coeffs[i]) < 1)
                     line = (i != 0)
-                        ? $"{coefs[i]:f3}x^{i} + "
-                        : $"{coefs[i]:f3}";
-                else if (Math.Abs(coefs[i]) >= 1)
+                        ? $"{coeffs[i]:f3}x^{i} + "
+                        : $"{coeffs[i]:f3}";
+                else if (Math.Abs(coeffs[i]) >= 1)
                     line = (i != 0)
-                        ? $"{coefs[i]:f2}x^{i} + "
-                        : $"{coefs[i]:f2}";
+                        ? $"{coeffs[i]:f2}x^{i} + "
+                        : $"{coeffs[i]:f2}";
                 else
                     line = (i != 0)
-                        ? $"{coefs[i]:e2}x^{i} + "
-                        : $"{coefs[i]:e2}";
+                        ? $"{coeffs[i]:e2}x^{i} + "
+                        : $"{coeffs[i]:e2}";
 
                 stream.Write(line);
                 Console.Write(line);
@@ -511,9 +611,9 @@
             stream.WriteLine("В полном виде:");
             Console.WriteLine($"В полном виде:");
 
-            for (int i = coefs.Length - 1; i >= 0; i--)
+            for (int i = coeffs.Length - 1; i >= 0; i--)
             {
-                line = $"{coefs[i]}";
+                line = $"{coeffs[i]}";
                 stream.WriteLine(line);
                 Console.WriteLine(line);
             }
