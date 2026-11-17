@@ -15,7 +15,7 @@ namespace Calibration
                 || args[0].Contains(".svg"))
                 ? args[0] : "Pressure.txt";
 
-            string fileNameOnly = dataFileName.Substring(0, dataFileName.LastIndexOf('.'));
+            string fileNameOnly = dataFileName[..dataFileName.LastIndexOf('.')];
             string resultFileName = args.Length > 1
                 && (args[1].Contains(".txt")
                 || args[1].Contains(".svg"))
@@ -35,11 +35,11 @@ namespace Calibration
                 return;
             }
 
-            #if VISUAL
+#if VISUAL
 
             Visualizer.DrawPoints(p_ads, t_ads, p_ref, "Входные данные");
 
-            #endif
+#endif
 
             double[] calibrationt_p_ads = new double[t_calibrationIndexes.Length];
             double[] calibrationt_t_ads = new double[t_calibrationIndexes.Length];
@@ -123,11 +123,11 @@ namespace Calibration
 
             PrintSummaryReport(monotonicityReport, fitReport, resultFileName);
 
-            #if VISUAL
+#if VISUAL
 
             Visualizer.DrawBoth(coefficients, p_normilizer.Normilize(p_ads), t_normilizer.Normilize(t_ads), p_ref, "Полином", "Эталон");
 
-            #endif
+#endif
 
             #endregion
         }
@@ -137,7 +137,7 @@ namespace Calibration
         static (int p_pow, int t_pow, int[] calibrationIndexes, double[] p_ads, double[] t_ads, double[] refer) ReadFile(string path)
         {
             if (path == null || !File.Exists(path))
-                throw new ArgumentNullException("Отсутствует файл с данными");
+                throw new Exception("Отсутствует файл с данными");
 
             int lineCount = 0;
             using (var reader = new StreamReader(path))
@@ -153,20 +153,15 @@ namespace Calibration
             double[] @ref = new double[lineCount - 2];
             int[] indexes = new int[lineCount - 2];
             int calibratedPoints = 0;
-            int p_pow = 1;
-            int t_pow = 1;
 
             using StreamReader stream = new(path);
 
-            string? powString = stream.ReadLine();
-
-            if (powString == null)
-                throw new Exception(
+            string? powString = stream.ReadLine() ?? throw new Exception(
                         "Пустой файл или нет данных");
 
             string[] powStrings = powString.Split(';');
 
-            if (!int.TryParse(powStrings[0][5..], out p_pow) || !int.TryParse(powStrings[1][5..], out t_pow))
+            if (!int.TryParse(powStrings[0][5..], out int p_pow) || !int.TryParse(powStrings[1][5..], out int t_pow))
                 throw new Exception(
                         "Ошибка при чтении показателя степени полинома");
 
@@ -241,7 +236,7 @@ namespace Calibration
 
         static void Print(PressureMonotonicityReport report, string path)
         {
-            string separator = new string('-', 52);
+            string separator = new('-', 52);
             string header = $"--------------- Отчет о монотонности ---------------";
             string verdict = $"Вердикт:                        {report.Verdict}";
             string sign = $"Знак производной:               {(report.Sign > 0 ? "+" : "-")}";
@@ -291,7 +286,7 @@ namespace Calibration
 
         static void Print(FitReport report, string path)
         {
-            string separator = new string('-', 52);
+            string separator = new('-', 52);
             string header = $"-------------- Отчет об аппроксимации --------------";
             string cond = $"Число обусловленности:                    {report.ConditionNumber:F2}";
             string rank = $"Ранг матрицы:                             {report.Rank}";
@@ -325,11 +320,11 @@ namespace Calibration
             PressureMonotonicityReport monoReport,
             FitReport fitReport, string path)
         {
-            string separator = new string('=', 64);
+            string separator = new('=', 64);
             string header = "================== ИТОГОВЫЙ СТАТУС КАЛИБРОВКИ ==================";
 
-            string status = "";
-            string recommendation = "";
+            string status;
+            string recommendation;
 
             if (fitReport.Points < fitReport.Coefficients || fitReport.Rank < fitReport.Coefficients)
             {
@@ -407,7 +402,7 @@ namespace Calibration
             // Заголовок
             int @char = 110 - head.Length;
 
-            string headDecor = new string('=', @char / 2);
+            string headDecor = new('=', @char / 2);
 
             string line = $"{headDecor}|{head}|{headDecor}";
 

@@ -169,7 +169,7 @@
             {
                 double v = -1.0 + iv * vStep;
                 if (iv == nv - 1) v = 1.0;
-                
+
                 for (int i = 0; i <= n; i++)
                 {
                     double ci = A[i, m];

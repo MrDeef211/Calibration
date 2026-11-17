@@ -14,7 +14,7 @@ namespace Calibration
                 || args[0].Contains(".svg"))
                 ? args[0] : "Temperature.txt";
 
-            string fileNameOnly = dataFileName.Substring(0, dataFileName.LastIndexOf('.'));
+            string fileNameOnly = dataFileName[..dataFileName.LastIndexOf('.')];
             string resultFileName = args.Length > 1
                 && (args[1].Contains(".txt")
                 || args[1].Contains(".svg"))
@@ -34,11 +34,11 @@ namespace Calibration
                 return;
             }
 
-            #if VISUAL
+#if VISUAL
 
             Visualizer.DrawPoints(t_ads, t_ref, "Входные данные");
 
-            #endif
+#endif
 
             double[] calibrationt_ads = new double[t_calibrationIndexes.Length];
             double[] calibrationt_ref = new double[t_calibrationIndexes.Length];
@@ -139,21 +139,21 @@ namespace Calibration
 
             Print(normilizeDeviation, resultFileName);
 
-            TemperatureMonotonicityReport report = new TemperatureMonotonicityReport(coeffcients);
+            TemperatureMonotonicityReport report = new(coeffcients);
 
             Print(report, resultFileName);
 
             PrintSummaryReport(report, normilizeDeviation, resultFileName);
 
-            #if VISUAL
+#if VISUAL
 
             Visualizer.DrawBoth(normilizeCoeffcients, normilizer.Normilize(t_ads), t_ref, "Полином", "Эталон");
 
-            #endif
+#endif
 
             #endregion
 
-            #if DEBUG
+#if DEBUG
 
             bool hasHeteroscedasticity = false;
 
@@ -222,7 +222,7 @@ namespace Calibration
             PrintSummaryReport(report, normilizeDeviation, resultFileName);
 
             #endregion
-            #endif
+#endif
 
         }
 
@@ -231,7 +231,7 @@ namespace Calibration
         static (int pow, int[] calibrationIndexes, double[] ads, double[] refer) ReadFile(string path)
         {
             if (path == null || !File.Exists(path))
-                throw new ArgumentNullException("Отсутствует файл с данными");
+                throw new Exception("Отсутствует файл с данными");
 
             int lineCount = 0;
             using (var reader = new StreamReader(path))
@@ -246,13 +246,12 @@ namespace Calibration
             double[] @ref = new double[lineCount - 2];
             int[] indexes = new int[lineCount - 2];
             int calibratedPoints = 0;
-            int pow = 1;
 
             using StreamReader stream = new(path);
 
-            string? powString = stream.ReadLine()?.Substring(4);
+            string? powString = stream.ReadLine()?[4..];
 
-            if (powString == null || !int.TryParse(powString, out pow))
+            if (powString == null || !int.TryParse(powString, out int pow))
                 throw new Exception(
                         "Ошибка при чтении показателя степени полинома");
 
@@ -338,7 +337,7 @@ namespace Calibration
 
         static void Print(TemperatureMonotonicityReport report, string path)
         {
-            string separator = new string('-', 64);
+            string separator = new('-', 64);
             string header = "------ Отчет о монотонности (температура с нормированием) ------";
             string verdict = $"Вердикт:                        {report.Verdict}";
             string sign = $"Знак производной:               {(report.Sign > 0 ? "+" : "-")}";
@@ -384,11 +383,11 @@ namespace Calibration
             TemperatureMonotonicityReport monoReport,
             double standardDeviation, string path)
         {
-            string separator = new string('=', 64);
+            string separator = new('=', 64);
             string header = "================== ИТОГОВЫЙ СТАТУС КАЛИБРОВКИ ==================";
 
-            string status = "";
-            string recommendation = "";
+            string status;
+            string recommendation;
 
             if (monoReport.Verdict == MonotonicityVerdict.Violated)
             {
@@ -462,7 +461,7 @@ namespace Calibration
             // Заголовок
             int c = 80 - head.Length;
 
-            string headDecor = new string('=', c / 2);
+            string headDecor = new('=', c / 2);
 
             string line = $"{headDecor}|{head}|{headDecor}";
 
@@ -546,7 +545,7 @@ namespace Calibration
             // Заголовок
             int c = 95 - head.Length;
 
-            string headDecor = new string('=', c / 2);
+            string headDecor = new('=', c / 2);
 
             string line = $"{headDecor}|{head}|{headDecor}";
 

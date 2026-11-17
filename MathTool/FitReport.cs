@@ -13,10 +13,10 @@
             double[] t_ads,
             double[] p_ref,
             double[] dp,
-            double[,] coef)
+            double[,] coeffs)
         {
             int K = p_ref.Length;
-            var H = MathTool.BuildDesignMatrix(coef.GetLength(0) - 1, coef.GetLength(1) - 1, p_ads, t_ads);
+            var H = MathTool.BuildDesignMatrix(coeffs.GetLength(0) - 1, coeffs.GetLength(1) - 1, p_ads, t_ads);
 
             var svd = H.Svd(computeVectors: false);
             double cond = svd.S[0] / svd.S[svd.S.Count - 1];
@@ -25,7 +25,7 @@
             ConditionNumber = cond;
             Rank = rank;
             Points = K;
-            Coefficients = coef.GetLength(0) * coef.GetLength(1);
+            Coefficients = coeffs.GetLength(0) * coeffs.GetLength(1);
             StandardDeviation = MathTool.GetStandardDeviation(dp);
         }
     }
