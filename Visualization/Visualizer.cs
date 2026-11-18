@@ -1,5 +1,5 @@
-﻿using Calibration;
-using Plotly.NET.CSharp;
+﻿using Plotly.NET.CSharp;
+using static Calibration.MathTool;
 
 namespace Visualization;
 
@@ -36,7 +36,7 @@ public static class Visualizer
         for (int i = 0; i < 300; i++)
         {
             x[i] = -1.5 + i * 0.01;
-            y[i] = MathTool.Calculate(coeffs, x[i]);
+            y[i] = Calculate(coeffs, x[i]);
         }
 
         var chart = Chart.Line<double, double, string>(
@@ -60,7 +60,7 @@ public static class Visualizer
             for (int j = 0; j < 300; j++)
             {
                 x2[j] = -1 + j * 0.01;
-                y[i][j] = MathTool.Calculate(coeffs, x1[i], x2[j]);
+                y[i][j] = Calculate(coeffs, x1[i], x2[j]);
             }
         }
 
@@ -75,10 +75,10 @@ public static class Visualizer
     }
 
     public static void DrawBoth(
-        double[] coeffs, 
-        double[] x, 
-        double[] y, 
-        string title1 = "title", 
+        double[] coeffs,
+        double[] x,
+        double[] y,
+        string title1 = "title",
         string title2 = "title")
     {
         var chart1 = Chart.Point<double, double, string>(
@@ -92,7 +92,7 @@ public static class Visualizer
         for (int i = 0; i < 300; i++)
         {
             x1[i] = -1.5 + i * 0.01;
-            y1[i] = MathTool.Calculate(coeffs, x1[i]);
+            y1[i] = Calculate(coeffs, x1[i]);
         }
 
         var chart2 = Chart.Line<double, double, string>(
@@ -107,11 +107,11 @@ public static class Visualizer
     }
 
     public static void DrawBoth(
-        double[,] coeffs, 
-        double[] x1, 
-        double[] x2, 
-        double[] y, 
-        string title1 = "title", 
+        double[,] coeffs,
+        double[] x1,
+        double[] x2,
+        double[] y,
+        string title1 = "title",
         string title2 = "title")
     {
         var chart1 = Chart.Point3D<double, double, double, string>(
@@ -131,7 +131,7 @@ public static class Visualizer
             for (int j = 0; j < 300; j++)
             {
                 xс2[j] = -1.5 + j * 0.01;
-                yс[i][j] = MathTool.Calculate(coeffs, xс2[j], xс1[i]);
+                yс[i][j] = Calculate(coeffs, xс2[j], xс1[i]);
             }
         }
 

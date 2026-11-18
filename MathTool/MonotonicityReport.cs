@@ -18,6 +18,7 @@
         public int Nt { get; init; }
         public int ViolationsCount { get; init; }
         public double TAtFirstViolation { get; init; }
+        public double[] Coefficients { get; init; }
 
         public TemperatureMonotonicityReport(
         double[] A,
@@ -26,8 +27,8 @@
         double delta = double.NaN,
         double deltaFraction = 0.02)
         {
-            if (A is null) throw new ArgumentNullException(nameof(A));
-            if (nt < 2) throw new ArgumentOutOfRangeException(nameof(nt));
+            ArgumentNullException.ThrowIfNull(A);
+            ArgumentOutOfRangeException.ThrowIfLessThan(nt, 2);
 
             int n = A.Length - 1;
 
@@ -42,6 +43,7 @@
                 Nt = nt;
                 ViolationsCount = nt;
                 TAtFirstViolation = double.NaN;
+                Coefficients = [];
                 return;
             }
 
@@ -109,6 +111,7 @@
             Nt = nt;
             ViolationsCount = violations;
             TAtFirstViolation = tFirstViol;
+            Coefficients = A;
         }
     }
 
@@ -126,6 +129,7 @@
         public int ViolationsCount { get; init; }
         public double UAtFirstViolation { get; init; }
         public double VAtFirstViolation { get; init; }
+        public double[,] Coefficients { get; init; }
 
         public PressureMonotonicityReport(
             double[,] A,
@@ -135,8 +139,8 @@
             double delta = double.NaN,
             double deltaFraction = 0.02)
         {
-            if (nu < 2) throw new ArgumentOutOfRangeException(nameof(nu));
-            if (nv < 2) throw new ArgumentOutOfRangeException(nameof(nv));
+            ArgumentOutOfRangeException.ThrowIfLessThan(nu, 2);
+            ArgumentOutOfRangeException.ThrowIfLessThan(nv, 2);
 
             int n = A.GetLength(0) - 1;
             int m = A.GetLength(1) - 1;
@@ -237,6 +241,7 @@
             ViolationsCount = violations;
             UAtFirstViolation = uFirstViol;
             VAtFirstViolation = vFirstViol;
+            Coefficients = A;
         }
     }
 }

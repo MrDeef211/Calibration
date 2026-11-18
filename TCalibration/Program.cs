@@ -1,6 +1,5 @@
-﻿// Ignore Spelling: coefs
-
-using Visualization;
+﻿using Visualization;
+using static Calibration.MathTool;
 
 namespace Calibration
 {
@@ -54,7 +53,7 @@ namespace Calibration
 
             #region Температура без нормализации
 
-            double[] coeffcients = MathTool.Polyfit1(
+            double[] coeffcients = Polyfit1(
                 pow,
                 calibrationt_ads,
                 calibrationt_ref
@@ -62,12 +61,12 @@ namespace Calibration
 
             try
             {
-                t = MathTool.Calculate(
+                t = Calculate(
                     coeffcients,
                     t_ads
                 );
 
-                dt = MathTool.Difference(t, t_ref);
+                dt = Difference(t, t_ref);
             }
             catch (Exception ex)
             {
@@ -81,10 +80,10 @@ namespace Calibration
                 "Без нормализации",
                 coeffcients,
                 t_ads, t_ref, t, dt,
-                MathTool.PointWiseQuotient(dt, t_ref)
+                PointWiseQuotient(dt, t_ref)
             );
 
-            double deviation = MathTool.GetStandardDeviation(dt);
+            double deviation = GetStandardDeviation(dt);
 
             Print(deviation, resultFileName);
 
@@ -103,18 +102,18 @@ namespace Calibration
             {
                 normilizer = new PointsNormilizer(min, max, 0.1);
 
-                normilizeCoeffcients = MathTool.Polyfit1(
+                normilizeCoeffcients = Polyfit1(
                     pow,
                     normilizer.Normilize(calibrationt_ads),
                     calibrationt_ref
                 );
 
-                t = MathTool.Calculate(
+                t = Calculate(
                     normilizeCoeffcients,
                     normilizer.Normilize(t_ads)
                 );
 
-                dt = MathTool.Difference(t, t_ref);
+                dt = Difference(t, t_ref);
             }
             catch (Exception ex)
             {
@@ -131,19 +130,26 @@ namespace Calibration
                 normilizer.Normilize(t_ads),
                 normilizer,
                 t_ref, t, dt,
-                MathTool.PointWiseQuotient(dt, t_ref),
+                PointWiseQuotient(dt, t_ref),
                 true
             );
 
-            double normilizeDeviation = MathTool.GetStandardDeviation(dt);
+            double normilizeDeviation = GetStandardDeviation(dt);
 
             Print(normilizeDeviation, resultFileName);
 
-            TemperatureMonotonicityReport report = new(coeffcients);
+            try
+            {
+                TemperatureMonotonicityReport report = new(normilizeCoeffcients);
 
-            Print(report, resultFileName);
+                Print(report, resultFileName);
 
-            PrintSummaryReport(report, normilizeDeviation, resultFileName);
+                PrintSummaryReport(report, normilizeDeviation, resultFileName);
+            }
+            catch (Exception ex) 
+            {
+                Print(ex, resultFileName);
+            }
 
 #if VISUAL
 
@@ -159,7 +165,7 @@ namespace Calibration
 
             try
             {
-                hasHeteroscedasticity = MathTool.HasHeteroskedasticity(calibrationt_ads, calibrationt_ref, 1);
+                hasHeteroscedasticity = HasHeteroskedasticity(calibrationt_ads, calibrationt_ref, 1);
             }
             catch (Exception ex)
             {
@@ -176,21 +182,21 @@ namespace Calibration
 
             try
             {
-                double[] heteroscedasticityWeights = MathTool.GetWeights(t, dt);
+                double[] heteroscedasticityWeights = GetWeights(t, dt);
 
-                normilizeCoeffcients = MathTool.Polyfit1(
+                normilizeCoeffcients = Polyfit1(
                     pow,
                     normilizer.Normilize(calibrationt_ads),
                     calibrationt_ref,
                     heteroscedasticityWeights
                 );
 
-                t = MathTool.Calculate(
+                t = Calculate(
                     normilizeCoeffcients,
                     normilizer.Normilize(t_ads)
                 );
 
-                dt = MathTool.Difference(t, t_ref);
+                dt = Difference(t, t_ref);
             }
             catch (Exception ex)
             {
@@ -207,19 +213,26 @@ namespace Calibration
                 normilizer.Normilize(t_ads),
                 normilizer,
                 t_ref, t, dt,
-                MathTool.PointWiseQuotient(dt, t_ref),
+                PointWiseQuotient(dt, t_ref),
                 true
             );
 
-            normilizeDeviation = MathTool.GetStandardDeviation(dt);
+            normilizeDeviation = GetStandardDeviation(dt);
 
             Print(normilizeDeviation, resultFileName);
 
-            report = new TemperatureMonotonicityReport(coeffcients);
+            try
+            {
+                TemperatureMonotonicityReport report = new(coeffcients);
 
-            Print(report, resultFileName);
+                Print(report, resultFileName);
 
-            PrintSummaryReport(report, normilizeDeviation, resultFileName);
+                PrintSummaryReport(report, normilizeDeviation, resultFileName);
+            }
+            catch (Exception ex)
+            {
+                Print(ex, resultFileName);
+            }
 
             #endregion
 #endif
@@ -262,15 +275,13 @@ namespace Calibration
             while (index < lineCount - 2)
             {
                 string? line = stream.ReadLine();
-                if (line == null) break;
+                if (line == null || line == "") break;
 
                 string[] lines = line.Split(';');
                 if (lines.Length < 2)
                     lines = lines[0].Split(" ");
                 if (lines.Length < 2)
                     lines = lines[0].Split("\t");
-                if (lines.Length == 1 && lines[0] == "")
-                    break;
                 if (lines.Length < 2)
                     throw new Exception(
                         "Неверный формат файла: неправильный или отсутствующий " +
@@ -342,12 +353,12 @@ namespace Calibration
             string verdict = $"Вердикт:                        {report.Verdict}";
             string sign = $"Знак производной:               {(report.Sign > 0 ? "+" : "-")}";
             string minAbsG = $"Мин. абс. G (Мин. производная): {report.MinAbsG:F6}";
-            string tAtMin = $"T при мин. G:                   {report.TAtMin:F4}";
+            string tAtMin = $"T при мин. G:                   {report.TAtMin:F4} ({Calculate(report.Coefficients, report.TAtMin)})";
             string delta = $"Дельта G:                       {report.Delta:E4}";
             string meanAbsG = $"Средний абс. G:                 {report.MeanAbsG:F6}";
             string grid = $"Сетка:                          {report.Nt}";
             string violations = $"Кол-во нарушений:               {report.ViolationsCount}";
-            string tFirstViol = $"T первого нарушения:            {report.TAtFirstViolation:F4}";
+            string tFirstViol = $"T первого нарушения:            {report.TAtFirstViolation:F4} ({Calculate(report.Coefficients, report.TAtFirstViolation)})";
 
             Console.WriteLine();
             Console.WriteLine(header);
@@ -403,7 +414,7 @@ namespace Calibration
                     "неравномерно или содержат сильные шумы (ошибки). Проверьте датчики и " +
                     "повторите замеры в других диапазонах.";
             }
-            else if (standardDeviation > 0.09)
+            else if (standardDeviation > 0.01)
             {
                 status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (высокая погрешность).";
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
@@ -448,7 +459,7 @@ namespace Calibration
         static void WriteFile(
             string path,
             string head,
-            double[] coefs,
+            double[] coeffs,
             double[] t_ads,
             double[] t_ref,
             double[] t,
@@ -491,20 +502,20 @@ namespace Calibration
             stream.Write("Коэффициенты = ");
             Console.Write("Коэффициенты = ");
 
-            for (int i = coefs.Length - 1; i >= 0; i--)
+            for (int i = coeffs.Length - 1; i >= 0; i--)
             {
-                if (Math.Abs(coefs[i]) >= 0.001 && Math.Abs(coefs[i]) < 1)
+                if (Math.Abs(coeffs[i]) >= 0.001 && Math.Abs(coeffs[i]) < 1)
                     line = (i != 0)
-                        ? $"{coefs[i]:f3}x^{i} + "
-                        : $"{coefs[i]:f3}";
-                else if (Math.Abs(coefs[i]) >= 1)
+                        ? $"{coeffs[i]:f3}x^{i} + "
+                        : $"{coeffs[i]:f3}";
+                else if (Math.Abs(coeffs[i]) >= 1)
                     line = (i != 0)
-                        ? $"{coefs[i]:f2}x^{i} + "
-                        : $"{coefs[i]:f2}";
+                        ? $"{coeffs[i]:f2}x^{i} + "
+                        : $"{coeffs[i]:f2}";
                 else
                     line = (i != 0)
-                        ? $"{coefs[i]:e2}x^{i} + "
-                        : $"{coefs[i]:e2}";
+                        ? $"{coeffs[i]:e2}x^{i} + "
+                        : $"{coeffs[i]:e2}";
 
                 stream.Write(line);
                 Console.Write(line);
@@ -516,9 +527,9 @@ namespace Calibration
             stream.WriteLine("В полном виде:");
             Console.WriteLine($"В полном виде:");
 
-            for (int i = coefs.Length - 1; i >= 0; i--)
+            for (int i = coeffs.Length - 1; i >= 0; i--)
             {
-                line = $"{coefs[i]}";
+                line = $"{coeffs[i]}";
                 stream.WriteLine(line);
                 Console.WriteLine(line);
             }

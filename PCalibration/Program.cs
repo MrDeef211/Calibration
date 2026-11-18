@@ -1,7 +1,6 @@
 ﻿using System.Text;
+using static Calibration.MathTool;
 using Visualization;
-
-
 
 namespace Calibration
 {
@@ -74,19 +73,19 @@ namespace Calibration
                 p_normilizer = new(p_min, p_max, 0.1);
                 t_normilizer = new(t_min, t_max, 0.1);
 
-                coefficients = MathTool.Polyfit2(
+                coefficients = Polyfit2(
                 p_pow,
                 t_pow,
                 p_normilizer.Normilize(calibrationt_p_ads),
                 t_normilizer.Normilize(calibrationt_t_ads),
                 calibrationt_ref);
 
-                p = MathTool.Calculate(
+                p = Calculate(
                     coefficients,
                     p_normilizer.Normilize(p_ads),
                     t_normilizer.Normilize(t_ads));
 
-                dp = MathTool.Difference(p, p_ref);
+                dp = Difference(p, p_ref);
             }
             catch (Exception e)
             {
@@ -104,24 +103,32 @@ namespace Calibration
                 t_normilizer.Normilize(t_ads),
                 t_normilizer,
                 p_ref, p, dp,
-                MathTool.PointWiseQuotient(dp, p_ref)
+                PointWiseQuotient(dp, p_ref)
             );
+            
 
-            PressureMonotonicityReport monotonicityReport = new(coefficients);
+            try
+            {
+                PressureMonotonicityReport monotonicityReport = new(coefficients);
 
-            FitReport fitReport = new(
-                p_normilizer.Normilize(calibrationt_p_ads),
-                t_normilizer.Normilize(calibrationt_t_ads),
-                calibrationt_ref,
-                dp,
-                coefficients
-            );
+                FitReport fitReport = new(
+                    p_normilizer.Normilize(calibrationt_p_ads),
+                    t_normilizer.Normilize(calibrationt_t_ads),
+                    calibrationt_ref,
+                    dp,
+                    coefficients
+                );
 
-            Print(monotonicityReport, resultFileName);
+                Print(monotonicityReport, resultFileName);
 
-            Print(fitReport, resultFileName);
+                Print(fitReport, resultFileName);
 
-            PrintSummaryReport(monotonicityReport, fitReport, resultFileName);
+                PrintSummaryReport(monotonicityReport, fitReport, resultFileName);
+            }
+            catch (Exception ex)
+            {
+                Print(ex, resultFileName);
+            }            
 
 #if VISUAL
 
@@ -172,15 +179,13 @@ namespace Calibration
             while (index < lineCount - 2)
             {
                 string? line = stream.ReadLine();
-                if (line == null) break;
+                if (line == null || line == "") break;
 
                 string[] lines = line.Split(';');
                 if (lines.Length < 3)
                     lines = lines[0].Split(" ");
                 if (lines.Length < 3)
                     lines = lines[0].Split("\t");
-                if (lines.Length == 1 && lines[0] == "")
-                    break;
                 if (lines.Length < 3)
                     throw new Exception(
                         "Неверный формат файла: неправильный или отсутствующий " +
