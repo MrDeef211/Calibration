@@ -1,4 +1,4 @@
-﻿using MathNet.Numerics.Providers.LinearAlgebra;
+﻿using MathNet.Numerics.LinearAlgebra;
 
 namespace Calibration
 {
@@ -32,17 +32,11 @@ namespace Calibration
         public double[] Normilize(double[] values)
         {
             ValidateRawPoints(values);
-            double[] result = new double[values.Length];
+            var vec = Vector<double>.Build.Dense(values);
 
-            // TODO поискать вариант получше
-            for (int i = 0; i < result.Length; i++)
-            {
-                result[i] = values[i] - Center;
-            }
+            var normalized = (vec - Center) * InvHalf;
 
-            LinearAlgebraControl.Provider.ScaleArray(InvHalf, result, result);
-
-            return result;
+            return normalized.AsArray(); 
         }
 
         public double Normilize(double value)

@@ -48,6 +48,14 @@ public static class MathTool
         return result.AsArray();
     }
 
+    public static double[] Quotient(double[] x, double y)
+    {
+        Vector<double> v1 = Vector<double>.Build.Dense(x);
+
+        Vector<double> result = v1 / y;
+        return result.AsArray();
+    }
+
     public static double Calculate(double[] coefficients, double t_ads)
     {
         return Polynomial.Evaluate(t_ads, coefficients);

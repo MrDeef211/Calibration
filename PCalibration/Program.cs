@@ -104,7 +104,7 @@ namespace Calibration
                 t_normilizer.Normilize(t_ads),
                 t_normilizer,
                 p_ref, p, dp,
-                PointWiseQuotient(dp, p_ref)
+                Quotient(dp, p_ref.Max())
             );
             
 
@@ -113,10 +113,11 @@ namespace Calibration
                 PressureMonotonicityReport monotonicityReport = new(coefficients);
 
                 FitReport fitReport = new(
-                    p_normilizer.Normilize(p_ads),
-                    t_normilizer.Normilize(t_ads),
+                    p_normilizer.Normilize(calibrationt_p_ads),
+                    t_normilizer.Normilize(calibrationt_t_ads),
                     p_ref,
                     dp,
+                    p_ref.Max(),
                     coefficients
                 );
 
@@ -294,12 +295,13 @@ namespace Calibration
         {
             string separator = new('-', 52);
             string header = $"-------------- Отчет об аппроксимации --------------";
-            string cond = $"Число обусловленности:                    {report.ConditionNumber:F2}";
-            string rank = $"Ранг матрицы:                             {report.Rank}";
-            string points = $"Количество калибровочных точек:           {report.Points}";
-            string coef = $"Количество коэффициентов:                 {report.Coefficients}";
-            string deviations = $"Среднеквадратичное отклонение от эталона: {report.StandardDeviation} ({report.RelativeStandardDeviation:p2})";
-            string maxDeviations = $"Максимальное отклонение от эталона:       {report.MaxDeviation} ({report.MaxRelativeDeviation:p2})";
+            string cond = $"Число обусловленности:              {report.ConditionNumber:F2} (Норма от 1 до 100000, в идеале меньше 100)";
+            string rank = $"Ранг матрицы:                       {report.Rank} (Должен быть не меньше чем число коэффициентов (pow_t+1)*(pow_p+1))";
+            string points = $"Количество калибровочных точек:     {report.Points}";
+            string coef = $"Количество коэффициентов:           {report.Coefficients}";
+            string deviations = $"Среднеквадратичная погрешность:     {report.StandardDeviation:f5} ({report.RelativeStandardDeviation:p5}) (Чем меньше тем лучше)";
+            string maxDeviations = $"Максимальная погрешность (точки):   {report.MaxDeviation:f5} ({report.MaxRelativeDeviation:p5}) (Чем меньше тем лучше)";
+            string confidenceInterval = $"Доверительный интервал (P = 99.7%): +- {(report.StandardDeviation * 3):f5} (Максимальная погрешность с вероятностью P)";
 
             Console.WriteLine();
             Console.WriteLine(header);
@@ -309,6 +311,7 @@ namespace Calibration
             Console.WriteLine(coef);
             Console.WriteLine(deviations);
             Console.WriteLine(maxDeviations);
+            Console.WriteLine(confidenceInterval);
             Console.WriteLine(separator);
             Console.WriteLine();
 
@@ -321,6 +324,7 @@ namespace Calibration
             stream.WriteLine(coef);
             stream.WriteLine(deviations);
             stream.WriteLine(maxDeviations);
+            stream.WriteLine(confidenceInterval);
             stream.WriteLine(separator);
             stream.WriteLine();
         }
@@ -439,9 +443,9 @@ namespace Calibration
 
                 line = !double.IsInfinity(ep[i])
                     ? $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
-                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {ep[i],15:p2} {(calibr ? "*" : ""),8}"
+                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f5} {ep[i],15:p5} {(calibr ? "*" : ""),8}"
                     : $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
-                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""),8}";
+                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f5} {"деление на 0",15} {(calibr ? "*" : ""),8}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
