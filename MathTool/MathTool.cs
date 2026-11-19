@@ -515,8 +515,8 @@ public static class MathTool
                 $"Уменьшите степени или добавьте точки.");
         if (rankH < L)
             throw new InvalidOperationException(
-                $"rank(H)={rankH} < {L}: матрица вырождена " +
-                $"Уменьшите степени.");
+                $"rank(H)={rankH} < {L}: матрица вырождена, значения имеют линейную зависимость, либо лежат на одной прямой " +
+                $"Уменьшите степени или добавьте РАЗНЫЕ точки.");
     }
 
     private static Vector<double> PackA(double[,] A)

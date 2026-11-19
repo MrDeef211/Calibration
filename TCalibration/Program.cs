@@ -1,6 +1,7 @@
-﻿using Visualization;
+﻿using System.Text.RegularExpressions;
+using Visualization;
 using static Calibration.MathTool;
-using static Plotly.NET.StyleParam.Range;
+
 
 namespace Calibration
 {
@@ -270,16 +271,16 @@ namespace Calibration
             string diapasonsString = stream.ReadLine() ?? throw new Exception(
                 "Пустой файл или нет данных");
 
-            string[] diapasonsStrings = diapasonsString.Split(';');
+            string[] diapasonsStrings = Regex.Replace(diapasonsString.Replace(',', '.'), @"\s+", ";").Split(';');
 
             if (powString == null || !int.TryParse(powString, out int pow))
                 throw new Exception(
                         "Ошибка при чтении показателя степени полинома");
 
-            if (!double.TryParse(diapasonsStrings[0][8..].Replace(',', '.'), out double t_AdcMin)
-                || !double.TryParse(diapasonsStrings[1][8..].Replace(',', '.'), out double t_AdcMax)
-                || !double.TryParse(diapasonsStrings[2][5..].Replace(',', '.'), out double t_Min)
-                || !double.TryParse(diapasonsStrings[3][5..].Replace(',', '.'), out double t_max))
+            if (!double.TryParse(diapasonsStrings[0][8..], out double t_AdcMin)
+                || !double.TryParse(diapasonsStrings[1][8..], out double t_AdcMax)
+                || !double.TryParse(diapasonsStrings[2][5..], out double t_Min)
+                || !double.TryParse(diapasonsStrings[3][5..], out double t_max))
                 throw new Exception(
                         "Ошибка при чтении диапазонов работы");
 
@@ -292,22 +293,18 @@ namespace Calibration
                 string? line = stream.ReadLine();
                 if (line == null || line == "") break;
 
-                string[] lines = line.Split(';');
-                if (lines.Length < 2)
-                    lines = lines[0].Split(" ");
-                if (lines.Length < 2)
-                    lines = lines[0].Split("\t");
+                string[] lines = Regex.Replace(line.Replace(',', '.'), @"\s+", ";").Split(';');
                 if (lines.Length < 2)
                     throw new Exception(
                         "Неверный формат файла: неправильный или отсутствующий " +
                         "разделитель или неправильное число столбцов");
 
-                if (double.TryParse(lines[0].Replace(',', '.'), out double t1))
+                if (double.TryParse(lines[0], out double t1))
                     adc[index] = t1;
                 else
                     break;
 
-                if (double.TryParse(lines[1].Replace(',', '.'), out double t2))
+                if (double.TryParse(lines[1], out double t2))
                     @ref[index] = t2;
 
                 if (lines.Length > 2 && lines[2] == "*")
