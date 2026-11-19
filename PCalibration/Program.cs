@@ -170,6 +170,10 @@ namespace Calibration
 
             string[] diapasonsStrings = diapasonsString.Split(';');
 
+            if (!int.TryParse(powStrings[0][5..], out int p_pow) || !int.TryParse(powStrings[1][5..], out int t_pow))
+                throw new Exception(
+                        "Ошибка при чтении показателя степени полинома");
+
             if (!double.TryParse(diapasonsStrings[0][8..].Replace(',', '.'), out double p_AdcMin)
                 || !double.TryParse(diapasonsStrings[1][8..].Replace(',', '.'), out double p_AdcMax)
                 || !double.TryParse(diapasonsStrings[2][8..].Replace(',', '.'), out double t_AdcMin)
@@ -180,10 +184,6 @@ namespace Calibration
                 || !double.TryParse(diapasonsStrings[7][5..].Replace(',', '.'), out double t_max))
                 throw new Exception(
                         "Ошибка при чтении диапазонов работы");
-
-            if (!int.TryParse(powStrings[0][5..], out int p_pow) || !int.TryParse(powStrings[1][5..], out int t_pow))
-                throw new Exception(
-                        "Ошибка при чтении показателя степени полинома");
 
             // Пропускаю заголовки
             stream.ReadLine();

@@ -1,5 +1,6 @@
 ﻿using Visualization;
 using static Calibration.MathTool;
+using static Plotly.NET.StyleParam.Range;
 
 namespace Calibration
 {
@@ -23,15 +24,22 @@ namespace Calibration
             int[] t_calibrationIndexes;
             double[] t_adc, t_ref;
 
+            TemperatureData temperatureData;
+
             try
             {
-                (pow, t_calibrationIndexes, t_adc, t_ref) = ReadFile(dataFileName);
+                temperatureData = ReadFile(dataFileName);
             }
             catch (Exception ex)
             {
                 Print(ex, resultFileName);
                 return;
             }
+
+            pow = temperatureData.T_Pow;
+            t_calibrationIndexes = temperatureData.CalibrationIndexes;
+            t_adc = temperatureData.T_Adc;
+            t_ref = temperatureData.T_Values;
 
 #if VISUAL
 
@@ -68,7 +76,7 @@ namespace Calibration
                 );
 
                 dt = Difference(t, t_ref);
-                et = PointWiseQuotient(dt, t_ref);
+                et = Quotient(dt, temperatureData.T_Max - temperatureData.T_Min);
             }
             catch (Exception ex)
             {
@@ -80,9 +88,9 @@ namespace Calibration
             WriteFile(
                 resultFileName,
                 "Без нормализации",
+                temperatureData,
                 coeffcients,
-                t_calibrationIndexes,
-                t_adc, t_ref, t, dt, et                
+                t, dt, et               
             );
 
             Print(dt, et, resultFileName);
@@ -91,8 +99,8 @@ namespace Calibration
 
             #region Температура с нормализацией
 
-            double min = t_adc.Min();
-            double max = t_adc.Max();
+            double min = temperatureData.T_AdcMin;
+            double max = temperatureData.T_AdcMax;
 
             double[] normilizeCoeffcients = [];
 
@@ -114,7 +122,7 @@ namespace Calibration
                 );
 
                 dt = Difference(t, t_ref);
-                et = PointWiseQuotient(dt, t_ref);
+                et = Quotient(dt, temperatureData.T_Max - temperatureData.T_Min);
             }
             catch (Exception ex)
             {
@@ -122,16 +130,13 @@ namespace Calibration
                 return;
             }
 
-
             WriteFile(
                 resultFileName,
                 "С нормализацией",
+                temperatureData,
                 normilizeCoeffcients,
-                t_calibrationIndexes,
-                t_adc,
                 normilizer.Normilize(t_adc),
-                normilizer,
-                t_ref, t, dt, et,
+                t, dt, et,
                 true
             );
 
@@ -158,88 +163,88 @@ namespace Calibration
 
             #endregion
 
-#if DEBUG
+//#if DEBUG
 
-            bool hasHeteroscedasticity = false;
+//            bool hasHeteroscedasticity = false;
 
-            try
-            {
-                hasHeteroscedasticity = HasHeteroskedasticity(calibrationt_adc, calibrationt_ref, 1);
-            }
-            catch (Exception ex)
-            {
-                Print(ex, resultFileName);
-            }
+//            try
+//            {
+//                hasHeteroscedasticity = HasHeteroskedasticity(calibrationt_adc, calibrationt_ref, 1);
+//            }
+//            catch (Exception ex)
+//            {
+//                Print(ex, resultFileName);
+//            }
 
-            Print($"{(hasHeteroscedasticity ? "Данные гетероскедастичны" : "Данные гомоскедастичны")}", resultFileName);
+//            Print($"{(hasHeteroscedasticity ? "Данные гетероскедастичны" : "Данные гомоскедастичны")}", resultFileName);
 
-            // ЗАВЕРШАЕТ ПРОГРАММУ, ПОМЕНЯТЬ ЕСЛИ ПОСЛЕ ЭТОГО РЕГИОНА БУДЕТ ДРУГОЙ КОД
-            if (!hasHeteroscedasticity)
-                return;
+//            // ЗАВЕРШАЕТ ПРОГРАММУ, ПОМЕНЯТЬ ЕСЛИ ПОСЛЕ ЭТОГО РЕГИОНА БУДЕТ ДРУГОЙ КОД
+//            if (!hasHeteroscedasticity)
+//                return;
 
-            #region Температура с нормализацией и матрицей весов (если данные гетероскедастичны)
+//            #region Температура с нормализацией и матрицей весов (если данные гетероскедастичны)
 
-            try
-            {
-                double[] heteroscedasticityWeights = GetWeights(t, dt);
+//            try
+//            {
+//                double[] heteroscedasticityWeights = GetWeights(t, dt);
 
-                normilizeCoeffcients = Polyfit1(
-                    pow,
-                    normilizer.Normilize(calibrationt_adc),
-                    calibrationt_ref,
-                    heteroscedasticityWeights
-                );
+//                normilizeCoeffcients = Polyfit1(
+//                    pow,
+//                    normilizer.Normilize(calibrationt_adc),
+//                    calibrationt_ref,
+//                    heteroscedasticityWeights
+//                );
 
-                t = Calculate(
-                    normilizeCoeffcients,
-                    normilizer.Normilize(t_adc)
-                );
+//                t = Calculate(
+//                    normilizeCoeffcients,
+//                    normilizer.Normilize(t_adc)
+//                );
 
-                dt = Difference(t, t_ref);
-                et = PointWiseQuotient(dt, t_ref);
-            }
-            catch (Exception ex)
-            {
-                Print(ex, resultFileName, true);
-                return;
-            }
+//                dt = Difference(t, t_ref);
+//                et = PointWiseQuotient(dt, t_ref);
+//            }
+//            catch (Exception ex)
+//            {
+//                Print(ex, resultFileName, true);
+//                return;
+//            }
 
 
-            WriteFile(
-                resultFileName,
-                "С нормализацией и матрицей весов",
-                normilizeCoeffcients,
-                t_calibrationIndexes,
-                t_adc,
-                normilizer.Normilize(t_adc),
-                normilizer,
-                t_ref, t, dt, et,
-                true
-            );
+//            WriteFile(
+//                resultFileName,
+//                "С нормализацией и матрицей весов",
+//                normilizeCoeffcients,
+//                t_calibrationIndexes,
+//                t_adc,
+//                normilizer.Normilize(t_adc),
+//                normilizer,
+//                t_ref, t, dt, et,
+//                true
+//            );
 
-            Print(dt, et, resultFileName);
+//            Print(dt, et, resultFileName);
 
-            try
-            {
-                TemperatureMonotonicityReport report = new(coeffcients);
+//            try
+//            {
+//                TemperatureMonotonicityReport report = new(coeffcients);
 
-                Print(report, resultFileName);
+//                Print(report, resultFileName);
 
-                PrintSummaryReport(report, et, resultFileName);
-            }
-            catch (Exception ex)
-            {
-                Print(ex, resultFileName);
-            }
+//                PrintSummaryReport(report, et, resultFileName);
+//            }
+//            catch (Exception ex)
+//            {
+//                Print(ex, resultFileName);
+//            }
 
-            #endregion
-#endif
+//            #endregion
+//#endif
 
         }
 
         #region Чтение
 
-        static (int pow, int[] calibrationIndexes, double[] adc, double[] refer) ReadFile(string path)
+        static TemperatureData ReadFile(string path)
         {
             if (path == null || !File.Exists(path))
                 throw new Exception("Отсутствует файл с данными");
@@ -262,9 +267,21 @@ namespace Calibration
 
             string? powString = stream.ReadLine()?[4..];
 
+            string diapasonsString = stream.ReadLine() ?? throw new Exception(
+                "Пустой файл или нет данных");
+
+            string[] diapasonsStrings = diapasonsString.Split(';');
+
             if (powString == null || !int.TryParse(powString, out int pow))
                 throw new Exception(
                         "Ошибка при чтении показателя степени полинома");
+
+            if (!double.TryParse(diapasonsStrings[0][8..].Replace(',', '.'), out double t_AdcMin)
+                || !double.TryParse(diapasonsStrings[1][8..].Replace(',', '.'), out double t_AdcMax)
+                || !double.TryParse(diapasonsStrings[2][5..].Replace(',', '.'), out double t_Min)
+                || !double.TryParse(diapasonsStrings[3][5..].Replace(',', '.'), out double t_max))
+                throw new Exception(
+                        "Ошибка при чтении диапазонов работы");
 
             // Пропускаю заголовки
             stream.ReadLine();
@@ -315,7 +332,7 @@ namespace Calibration
             if (calibratedPoints < indexes.Length)
                 Array.Resize(ref indexes, calibratedPoints);
 
-            return (pow, indexes, adc, @ref);
+            return new TemperatureData(pow, indexes, adc, @ref, t_AdcMin, t_AdcMax, t_Min, t_max);
         }
 
         #endregion
@@ -324,17 +341,20 @@ namespace Calibration
 
         static void Print(double[] dx, double[] ex, string path)
         {
-            string deviation = $"Среднеквадратичное отклонение = {GetStandardDeviation(dx)} ({GetStandardDeviation(ex):p2})";
-            string maxDeviation = $"Наибольшее отклонение = {dx.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0)}" +
-                $" ({ex.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0):p2})";
+            string deviation = $"Среднеквадратичная погрешность = {GetStandardDeviation(dx)} ({GetStandardDeviation(ex):p2}) (Чем меньше тем лучше)";
+            string maxDeviation = $"Наибольшая погрешность = {dx.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0)}" +
+                $" ({ex.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0):p2}) (Чем меньше тем лучше)";
+            string confidenceInterval = $"Доверительный интервал (P = 99.7%) = +- {(GetStandardDeviation(dx) * 3):f5} (Максимальная погрешность с вероятностью P)";
 
             Console.WriteLine(deviation);
             Console.WriteLine(maxDeviation);
+            Console.WriteLine(confidenceInterval);
             Console.WriteLine();
 
             using StreamWriter stream = new(path, true);
             stream.WriteLine(deviation);
             stream.WriteLine(maxDeviation);
+            stream.WriteLine(confidenceInterval);
             stream.WriteLine();
         }
 
@@ -461,10 +481,8 @@ namespace Calibration
         static void WriteFile(
             string path,
             string head,
+            TemperatureData data,
             double[] coeffs,
-            int[] calibration,
-            double[] t_adc,
-            double[] t_ref,
             double[] t,
             double[] dt,
             double[] et,
@@ -494,13 +512,11 @@ namespace Calibration
             // Значения
             for (int i = 0; i < t.Length; i++)
             {
-                calibr = calibration.Length > j ? calibration[j] == i : false;
+                calibr = data.CalibrationIndexes.Length > j ? data.CalibrationIndexes[j] == i : false;
                 if (calibr)
                     j++;
 
-                line = !double.IsInfinity(et[i])
-                    ? $"{t_adc[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2} {(calibr ? "*" : ""),10}"
-                    : $"{t_adc[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""),10}";
+                line = $"{data.T_Adc[i],11:f3} {data.T_Values[i],15:f3} {t[i],15:f3} {dt[i],15:f5} {et[i],15:p5} {(calibr ? "*" : ""),10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
@@ -551,12 +567,9 @@ namespace Calibration
         static void WriteFile(
             string path,
             string head,
+            TemperatureData data,
             double[] coeffs,
-            int[] calibration,
-            double[] t_adc,
             double[] t_normalized,
-            PointsNormilizer t_normalizer,
-            double[] t_ref,
             double[] t,
             double[] dt,
             double[] et,
@@ -585,13 +598,11 @@ namespace Calibration
             // Значения
             for (int i = 0; i < t.Length; i++)
             {
-                calibr = calibration.Length > j ? calibration[j] == i : false;
+                calibr = data.CalibrationIndexes.Length > j ? data.CalibrationIndexes[j] == i : false;
                 if (calibr)
                     j++;
 
-                line = !double.IsInfinity(et[i])
-                    ? $"{t_adc[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2} {(calibr ? "*" : ""), 10}"
-                    : $"{t_adc[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""), 10}";
+                line = $"{data.T_Adc[i],11:f3} {t_normalized[i],15:f3} {data.T_Values[i],15:f3} {t[i],15:f3} {dt[i],15:f5} {et[i],15:p5} {(calibr ? "*" : ""),10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
@@ -600,7 +611,8 @@ namespace Calibration
             stream.WriteLine("");
             Console.WriteLine("");
 
-            line = $"Диапазон нормирования: ({t_normalizer.Min} - {t_normalizer.Max}) +- {t_normalizer.Tolerance:p0}";
+            line = $"Диапазон нормирования: {data.T_AdcMin} - " +
+                $"{data.T_AdcMax}, для температуры: ({data.T_Min} - {data.T_Max})";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
@@ -650,5 +662,48 @@ namespace Calibration
         }
 
         #endregion
+    }
+
+    public class TemperatureData
+    {
+        public int T_Pow { get; init; }
+        public int[] CalibrationIndexes { get; init; }
+        public double[] T_Adc { get; init; }
+        public double[] T_Values { get; init; }
+        public double T_AdcMin { get; init; }
+        public double T_AdcMax { get; init; }
+        public double T_Min { get; init; }
+        public double T_Max { get; init; }
+
+        public TemperatureData(
+            int t_pow,
+            int[] calibrationIndexes,
+            double[] t_adc,
+            double[] refer,
+            double t_adcMin,
+            double t_adcMax,
+            double t_min,
+            double t_max)
+        {
+            T_Pow = t_pow;
+            CalibrationIndexes = calibrationIndexes;
+            T_Adc = t_adc;
+            T_Values = refer;
+            T_AdcMin = t_adcMin;
+            T_AdcMax = t_adcMax;
+            T_Min = t_min;
+            T_Max = t_max;
+        }
+        public TemperatureData()
+        {
+            T_Pow = 0;
+            CalibrationIndexes = [];
+            T_Adc = [];
+            T_Values = [];
+            T_AdcMin = 0;
+            T_AdcMax = 0;
+            T_Min = 0;
+            T_Max = 0;
+        }
     }
 }
