@@ -130,7 +130,7 @@ namespace Calibration
 
 #if VISUAL
 
-            Visualizer.DrawBoth(coefficients, p_normilizer.Normilize(pressureData.P_Adc), t_normilizer.Normilize(pressureData.T_Adc), pressureData., "Полином", "Эталон");
+            Visualizer.DrawBoth(coefficients, p_normilizer.Normilize(pressureData.P_Adc), t_normilizer.Normilize(pressureData.T_Adc), pressureData.P_Values, "Полином", "Эталон");
 
 #endif
 
@@ -164,7 +164,7 @@ namespace Calibration
             string powString = stream.ReadLine() ?? throw new Exception(
                         "Пустой файл или нет данных");
 
-            string[] powStrings = powString.Split(';');
+            string[] powStrings = Regex.Replace(powString, @"\s+", ";").Split(';');
 
             string diapasonsString = stream.ReadLine() ?? throw new Exception(
                 "Пустой файл или нет данных");
@@ -458,7 +458,7 @@ namespace Calibration
                     k++;
 
                 line = $"{data.P_Adc[i],11:f3} {data.T_Adc[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
-                    $" {data.P_Values[i],15:f3} {p[i],15:f3} {dp[i],15:f5} {ep[i],15:p5} {(calibr ? "*" : ""),8}";
+                    $" {data.P_Values[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {ep[i],15:p3} {(calibr ? "*" : ""),8}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);

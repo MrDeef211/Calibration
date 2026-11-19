@@ -517,7 +517,7 @@ namespace Calibration
                 if (calibr)
                     j++;
 
-                line = $"{data.T_Adc[i],11:f3} {data.T_Values[i],15:f3} {t[i],15:f3} {dt[i],15:f5} {et[i],15:p5} {(calibr ? "*" : ""),10}";
+                line = $"{data.T_Adc[i],11:f3} {data.T_Values[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p3} {(calibr ? "*" : ""),10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
@@ -603,7 +603,7 @@ namespace Calibration
                 if (calibr)
                     j++;
 
-                line = $"{data.T_Adc[i],11:f3} {t_normalized[i],15:f3} {data.T_Values[i],15:f3} {t[i],15:f3} {dt[i],15:f5} {et[i],15:p5} {(calibr ? "*" : ""),10}";
+                line = $"{data.T_Adc[i],11:f3} {t_normalized[i],15:f3} {data.T_Values[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p3} {(calibr ? "*" : ""),10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
