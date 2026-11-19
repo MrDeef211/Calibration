@@ -61,6 +61,8 @@ namespace Calibration
             double[] dt = [];
             double[] et = [];
 
+#if DEBUG
+
             #region Температура без нормализации
 
             double[] coeffcients = Polyfit1(
@@ -97,6 +99,8 @@ namespace Calibration
             Print(dt, et, resultFileName);
 
             #endregion
+
+#endif
 
             #region Температура с нормализацией
 
