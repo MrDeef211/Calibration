@@ -50,6 +50,7 @@ namespace Calibration
 
             double[] t = [];
             double[] dt = [];
+            double[] et = [];
 
             #region Температура без нормализации
 
@@ -67,6 +68,7 @@ namespace Calibration
                 );
 
                 dt = Difference(t, t_ref);
+                et = PointWiseQuotient(dt, t_ref);
             }
             catch (Exception ex)
             {
@@ -79,13 +81,11 @@ namespace Calibration
                 resultFileName,
                 "Без нормализации",
                 coeffcients,
-                t_ads, t_ref, t, dt,
-                PointWiseQuotient(dt, t_ref)
+                t_calibrationIndexes,
+                t_ads, t_ref, t, dt, et                
             );
 
-            double deviation = GetStandardDeviation(dt);
-
-            Print(deviation, resultFileName);
+            Print(dt, et, resultFileName);
 
             #endregion
 
@@ -114,6 +114,7 @@ namespace Calibration
                 );
 
                 dt = Difference(t, t_ref);
+                et = PointWiseQuotient(dt, t_ref);
             }
             catch (Exception ex)
             {
@@ -126,17 +127,15 @@ namespace Calibration
                 resultFileName,
                 "С нормализацией",
                 normilizeCoeffcients,
+                t_calibrationIndexes,
                 t_ads,
                 normilizer.Normilize(t_ads),
                 normilizer,
-                t_ref, t, dt,
-                PointWiseQuotient(dt, t_ref),
+                t_ref, t, dt, et,
                 true
             );
 
-            double normilizeDeviation = GetStandardDeviation(dt);
-
-            Print(normilizeDeviation, resultFileName);
+            Print(dt, et, resultFileName);
 
             try
             {
@@ -144,7 +143,7 @@ namespace Calibration
 
                 Print(report, resultFileName);
 
-                PrintSummaryReport(report, normilizeDeviation, resultFileName);
+                PrintSummaryReport(report, et, resultFileName);
             }
             catch (Exception ex) 
             {
@@ -197,6 +196,7 @@ namespace Calibration
                 );
 
                 dt = Difference(t, t_ref);
+                et = PointWiseQuotient(dt, t_ref);
             }
             catch (Exception ex)
             {
@@ -209,17 +209,15 @@ namespace Calibration
                 resultFileName,
                 "С нормализацией и матрицей весов",
                 normilizeCoeffcients,
+                t_calibrationIndexes,
                 t_ads,
                 normilizer.Normilize(t_ads),
                 normilizer,
-                t_ref, t, dt,
-                PointWiseQuotient(dt, t_ref),
+                t_ref, t, dt, et,
                 true
             );
 
-            normilizeDeviation = GetStandardDeviation(dt);
-
-            Print(normilizeDeviation, resultFileName);
+            Print(dt, et, resultFileName);
 
             try
             {
@@ -227,7 +225,7 @@ namespace Calibration
 
                 Print(report, resultFileName);
 
-                PrintSummaryReport(report, normilizeDeviation, resultFileName);
+                PrintSummaryReport(report, et, resultFileName);
             }
             catch (Exception ex)
             {
@@ -324,15 +322,19 @@ namespace Calibration
 
         #region Запись
 
-        static void Print(double standardDeviation, string path)
+        static void Print(double[] dx, double[] ex, string path)
         {
-            string deviation = $"Среднеквадратичное отклонение = {standardDeviation}";
+            string deviation = $"Среднеквадратичное отклонение = {GetStandardDeviation(dx)} ({GetStandardDeviation(ex):p2})";
+            string maxDeviation = $"Наибольшее отклонение = {dx.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0)}" +
+                $" ({ex.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0):p2})";
 
             Console.WriteLine(deviation);
+            Console.WriteLine(maxDeviation);
             Console.WriteLine();
 
             using StreamWriter stream = new(path, true);
             stream.WriteLine(deviation);
+            stream.WriteLine(maxDeviation);
             stream.WriteLine();
         }
 
@@ -392,7 +394,7 @@ namespace Calibration
 
         static void PrintSummaryReport(
             TemperatureMonotonicityReport monoReport,
-            double standardDeviation, string path)
+            double[] ex, string path)
         {
             string separator = new('=', 64);
             string header = "================== ИТОГОВЫЙ СТАТУС КАЛИБРОВКИ ==================";
@@ -414,7 +416,7 @@ namespace Calibration
                     "неравномерно или содержат сильные шумы (ошибки). Проверьте датчики и " +
                     "повторите замеры в других диапазонах.";
             }
-            else if (standardDeviation > 0.01)
+            else if (GetStandardDeviation(ex) > 0.0005 || ex.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0) > 0.0015)
             {
                 status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (высокая погрешность).";
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
@@ -460,6 +462,7 @@ namespace Calibration
             string path,
             string head,
             double[] coeffs,
+            int[] calibration,
             double[] t_ads,
             double[] t_ref,
             double[] t,
@@ -470,7 +473,7 @@ namespace Calibration
             using StreamWriter stream = new(path, append);
 
             // Заголовок
-            int c = 80 - head.Length;
+            int c = 90 - head.Length;
 
             string headDecor = new('=', c / 2);
 
@@ -480,17 +483,24 @@ namespace Calibration
             Console.WriteLine(line);
 
             // Заголовки
-            line = $"{"АЦП",8} {"Эталон",18} {"Результат",16} {"Абс. Погрешность",19} {"Отн. Погрешность",16}";
+            line = $"{"АЦП",8} {"Эталон",18} {"Результат",16} {"Абс. Погрешность",19} {"Отн. Погрешность",16} {"Калибр.",5}";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
+
+            int j = 0;
+            bool calibr = false;
             // Значения
             for (int i = 0; i < t.Length; i++)
             {
+                calibr = calibration.Length > j ? calibration[j] == i : false;
+                if (calibr)
+                    j++;
+
                 line = !double.IsInfinity(et[i])
-                    ? $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2}"
-                    : $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15}";
+                    ? $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2} {(calibr ? "*" : ""),10}"
+                    : $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""),10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
@@ -542,6 +552,7 @@ namespace Calibration
             string path,
             string head,
             double[] coeffs,
+            int[] calibration,
             double[] t_ads,
             double[] t_normalized,
             PointsNormilizer t_normalizer,
@@ -554,7 +565,7 @@ namespace Calibration
             using StreamWriter stream = new(path, append);
 
             // Заголовок
-            int c = 95 - head.Length;
+            int c = 105 - head.Length;
 
             string headDecor = new('=', c / 2);
 
@@ -564,18 +575,23 @@ namespace Calibration
             Console.WriteLine(line);
 
             // Заголовки
-            line = $"{"АЦП",8} {"После Нормализации",24} {"Эталон",9} {"Результат",16} {"Абс. Погрешность",19} {"Отн. Погрешность",16}";
+            line = $"{"АЦП",8} {"После Нормализации",24} {"Эталон",9} {"Результат",16} {"Абс. Погрешность",19} {"Отн. Погрешность",16} {"Калибр.", 5}";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
+            int j = 0;
+            bool calibr = false;
             // Значения
             for (int i = 0; i < t.Length; i++)
             {
+                calibr = calibration.Length > j ? calibration[j] == i : false;
+                if (calibr)
+                    j++;
 
                 line = !double.IsInfinity(et[i])
-                    ? $"{t_ads[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2}"
-                    : $"{t_ads[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15}";
+                    ? $"{t_ads[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2} {(calibr ? "*" : ""), 10}"
+                    : $"{t_ads[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""), 10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);

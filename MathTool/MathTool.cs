@@ -99,12 +99,16 @@ public static class MathTool
     public static double GetStandardDeviation(double[] deviations)
     {
         double deviation = 0;
+        int deviasionCount = 0;
         foreach (var dev in deviations)
         {
-            deviation += dev * dev;
+            if (!double.IsFinite(dev))
+                continue;
+            deviation +=  dev * dev;
+            deviasionCount++;
         }
-        deviation /= deviations.Length;
-        return deviation;
+        deviation /= deviasionCount;
+        return Math.Sqrt(deviation);
     }
 
     //public static double[] Polyfit(int Size, double[] x, double[] y)

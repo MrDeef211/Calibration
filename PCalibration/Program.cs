@@ -21,12 +21,12 @@ namespace Calibration
                 ? args[1] : fileNameOnly + "Result.txt";
 
             int t_pow, p_pow;
-            int[] t_calibrationIndexes;
+            int[] p_calibrationIndexes;
             double[] p_ads, t_ads, p_ref;
 
             try
             {
-                (p_pow, t_pow, t_calibrationIndexes, p_ads, t_ads, p_ref) = ReadFile(dataFileName);
+                (p_pow, t_pow, p_calibrationIndexes, p_ads, t_ads, p_ref) = ReadFile(dataFileName);
             }
             catch (Exception ex)
             {
@@ -40,15 +40,15 @@ namespace Calibration
 
 #endif
 
-            double[] calibrationt_p_ads = new double[t_calibrationIndexes.Length];
-            double[] calibrationt_t_ads = new double[t_calibrationIndexes.Length];
-            double[] calibrationt_ref = new double[t_calibrationIndexes.Length];
+            double[] calibrationt_p_ads = new double[p_calibrationIndexes.Length];
+            double[] calibrationt_t_ads = new double[p_calibrationIndexes.Length];
+            double[] calibrationt_ref = new double[p_calibrationIndexes.Length];
 
-            for (int i = 0; i < t_calibrationIndexes.Length; i++)
+            for (int i = 0; i < p_calibrationIndexes.Length; i++)
             {
-                calibrationt_p_ads[i] = p_ads[t_calibrationIndexes[i]];
-                calibrationt_t_ads[i] = t_ads[t_calibrationIndexes[i]];
-                calibrationt_ref[i] = p_ref[t_calibrationIndexes[i]];
+                calibrationt_p_ads[i] = p_ads[p_calibrationIndexes[i]];
+                calibrationt_t_ads[i] = t_ads[p_calibrationIndexes[i]];
+                calibrationt_ref[i] = p_ref[p_calibrationIndexes[i]];
             }
 
             double[] p = [];
@@ -97,6 +97,7 @@ namespace Calibration
                 resultFileName,
                 "Прямой QR метод",
                 coefficients,
+                p_calibrationIndexes,
                 p_ads, t_ads,
                 p_normilizer.Normilize(p_ads),
                 p_normilizer,
@@ -112,9 +113,9 @@ namespace Calibration
                 PressureMonotonicityReport monotonicityReport = new(coefficients);
 
                 FitReport fitReport = new(
-                    p_normilizer.Normilize(calibrationt_p_ads),
-                    t_normilizer.Normilize(calibrationt_t_ads),
-                    calibrationt_ref,
+                    p_normilizer.Normilize(p_ads),
+                    t_normilizer.Normilize(t_ads),
+                    p_ref,
                     dp,
                     coefficients
                 );
@@ -297,7 +298,8 @@ namespace Calibration
             string rank = $"Ранг матрицы:                             {report.Rank}";
             string points = $"Количество калибровочных точек:           {report.Points}";
             string coef = $"Количество коэффициентов:                 {report.Coefficients}";
-            string deviations = $"Среднеквадратичное отклонение от эталона: {report.StandardDeviation}";
+            string deviations = $"Среднеквадратичное отклонение от эталона: {report.StandardDeviation} ({report.RelativeStandardDeviation:p2})";
+            string maxDeviations = $"Максимальное отклонение от эталона:       {report.MaxDeviation} ({report.MaxRelativeDeviation:p2})";
 
             Console.WriteLine();
             Console.WriteLine(header);
@@ -306,6 +308,7 @@ namespace Calibration
             Console.WriteLine(points);
             Console.WriteLine(coef);
             Console.WriteLine(deviations);
+            Console.WriteLine(maxDeviations);
             Console.WriteLine(separator);
             Console.WriteLine();
 
@@ -317,6 +320,7 @@ namespace Calibration
             stream.WriteLine(points);
             stream.WriteLine(coef);
             stream.WriteLine(deviations);
+            stream.WriteLine(maxDeviations);
             stream.WriteLine(separator);
             stream.WriteLine();
         }
@@ -351,7 +355,7 @@ namespace Calibration
                     "неравномерно или содержат сильные шумы (ошибки). Проверьте датчики и " +
                     "повторите замеры в других диапазонах.";
             }
-            else if (fitReport.StandardDeviation > 0.09)
+            else if (fitReport.RelativeStandardDeviation > 0.0005 || fitReport.MaxRelativeDeviation > 0.0015)
             {
                 status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (высокая погрешность).";
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
@@ -390,6 +394,7 @@ namespace Calibration
             string path,
             string head,
             double[,] coeffs,
+            int[] calibration,
             double[] p_ads,
             double[] t_ads,
             double[] p_normalized,
@@ -405,7 +410,7 @@ namespace Calibration
             using StreamWriter stream = new(path, append);
 
             // Заголовок
-            int @char = 110 - head.Length;
+            int @char = 120 - head.Length;
 
             string headDecor = new('=', @char / 2);
 
@@ -416,19 +421,27 @@ namespace Calibration
 
             // Заголовки
             line = $"{"АЦП 1",10} {"АЦП 2",11} {"Норм. 1",10} {"Норм. 2",8} {"Эталон",12}" +
-                $" {"Результат",16} {"Абс. Погрешность",19} {"Отн. Погрешность",16}";
+                $" {"Результат",16} {"Абс. Погрешность",19} {"Отн. Погрешность",16} {"Калибр.",5}";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
+
+            int k = 0;
+            bool calibr = false;
             // Значения
             for (int i = 0; i < p.Length; i++)
             {
+                calibr = calibration.Length > k ? calibration[k] == i : false;
+                if (calibr)
+                    k++;
+
+
                 line = !double.IsInfinity(ep[i])
                     ? $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
-                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {ep[i],15:p2}"
+                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {ep[i],15:p2} {(calibr ? "*" : ""),8}"
                     : $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
-                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {"деление на 0",15}";
+                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""),8}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);

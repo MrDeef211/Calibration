@@ -9,6 +9,9 @@ namespace Calibration
         public int Points { get; init; }
         public int Coefficients { get; init; }
         public double StandardDeviation { get; init; }
+        public double RelativeStandardDeviation { get; init; }
+        public double MaxDeviation { get; init; }
+        public double MaxRelativeDeviation { get; init; }
 
         public FitReport(
             double[] p_ads,
@@ -23,12 +26,17 @@ namespace Calibration
             var svd = H.Svd(computeVectors: false);
             double cond = svd.S[0] / svd.S[^1];
             int rank = svd.S.Count(s => s > 1e-10 * svd.S[0]);
+            double[] ep = PointWiseQuotient(dp, p_ref);
 
             ConditionNumber = cond;
             Rank = rank;
             Points = K;
             Coefficients = coeffs.GetLength(0) * coeffs.GetLength(1);
             StandardDeviation = GetStandardDeviation(dp);
+            RelativeStandardDeviation = GetStandardDeviation(ep);
+            MaxDeviation = dp.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0);
+            MaxRelativeDeviation = ep.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0);
+            
         }
     }
 }
