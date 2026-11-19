@@ -21,11 +21,11 @@ namespace Calibration
 
             int pow;
             int[] t_calibrationIndexes;
-            double[] t_ads, t_ref;
+            double[] t_adc, t_ref;
 
             try
             {
-                (pow, t_calibrationIndexes, t_ads, t_ref) = ReadFile(dataFileName);
+                (pow, t_calibrationIndexes, t_adc, t_ref) = ReadFile(dataFileName);
             }
             catch (Exception ex)
             {
@@ -35,16 +35,16 @@ namespace Calibration
 
 #if VISUAL
 
-            Visualizer.DrawPoints(t_ads, t_ref, "Входные данные");
+            Visualizer.DrawPoints(t_adc, t_ref, "Входные данные");
 
 #endif
 
-            double[] calibrationt_ads = new double[t_calibrationIndexes.Length];
+            double[] calibrationt_adc = new double[t_calibrationIndexes.Length];
             double[] calibrationt_ref = new double[t_calibrationIndexes.Length];
 
             for (int i = 0; i < t_calibrationIndexes.Length; i++)
             {
-                calibrationt_ads[i] = t_ads[t_calibrationIndexes[i]];
+                calibrationt_adc[i] = t_adc[t_calibrationIndexes[i]];
                 calibrationt_ref[i] = t_ref[t_calibrationIndexes[i]];
             }
 
@@ -56,7 +56,7 @@ namespace Calibration
 
             double[] coeffcients = Polyfit1(
                 pow,
-                calibrationt_ads,
+                calibrationt_adc,
                 calibrationt_ref
             );
 
@@ -64,7 +64,7 @@ namespace Calibration
             {
                 t = Calculate(
                     coeffcients,
-                    t_ads
+                    t_adc
                 );
 
                 dt = Difference(t, t_ref);
@@ -82,7 +82,7 @@ namespace Calibration
                 "Без нормализации",
                 coeffcients,
                 t_calibrationIndexes,
-                t_ads, t_ref, t, dt, et                
+                t_adc, t_ref, t, dt, et                
             );
 
             Print(dt, et, resultFileName);
@@ -91,8 +91,8 @@ namespace Calibration
 
             #region Температура с нормализацией
 
-            double min = t_ads.Min();
-            double max = t_ads.Max();
+            double min = t_adc.Min();
+            double max = t_adc.Max();
 
             double[] normilizeCoeffcients = [];
 
@@ -104,13 +104,13 @@ namespace Calibration
 
                 normilizeCoeffcients = Polyfit1(
                     pow,
-                    normilizer.Normilize(calibrationt_ads),
+                    normilizer.Normilize(calibrationt_adc),
                     calibrationt_ref
                 );
 
                 t = Calculate(
                     normilizeCoeffcients,
-                    normilizer.Normilize(t_ads)
+                    normilizer.Normilize(t_adc)
                 );
 
                 dt = Difference(t, t_ref);
@@ -128,8 +128,8 @@ namespace Calibration
                 "С нормализацией",
                 normilizeCoeffcients,
                 t_calibrationIndexes,
-                t_ads,
-                normilizer.Normilize(t_ads),
+                t_adc,
+                normilizer.Normilize(t_adc),
                 normilizer,
                 t_ref, t, dt, et,
                 true
@@ -152,7 +152,7 @@ namespace Calibration
 
 #if VISUAL
 
-            Visualizer.DrawBoth(normilizeCoeffcients, normilizer.Normilize(t_ads), t_ref, "Полином", "Эталон");
+            Visualizer.DrawBoth(normilizeCoeffcients, normilizer.Normilize(t_adc), t_ref, "Полином", "Эталон");
 
 #endif
 
@@ -164,7 +164,7 @@ namespace Calibration
 
             try
             {
-                hasHeteroscedasticity = HasHeteroskedasticity(calibrationt_ads, calibrationt_ref, 1);
+                hasHeteroscedasticity = HasHeteroskedasticity(calibrationt_adc, calibrationt_ref, 1);
             }
             catch (Exception ex)
             {
@@ -185,14 +185,14 @@ namespace Calibration
 
                 normilizeCoeffcients = Polyfit1(
                     pow,
-                    normilizer.Normilize(calibrationt_ads),
+                    normilizer.Normilize(calibrationt_adc),
                     calibrationt_ref,
                     heteroscedasticityWeights
                 );
 
                 t = Calculate(
                     normilizeCoeffcients,
-                    normilizer.Normilize(t_ads)
+                    normilizer.Normilize(t_adc)
                 );
 
                 dt = Difference(t, t_ref);
@@ -210,8 +210,8 @@ namespace Calibration
                 "С нормализацией и матрицей весов",
                 normilizeCoeffcients,
                 t_calibrationIndexes,
-                t_ads,
-                normilizer.Normilize(t_ads),
+                t_adc,
+                normilizer.Normilize(t_adc),
                 normilizer,
                 t_ref, t, dt, et,
                 true
@@ -239,7 +239,7 @@ namespace Calibration
 
         #region Чтение
 
-        static (int pow, int[] calibrationIndexes, double[] ads, double[] refer) ReadFile(string path)
+        static (int pow, int[] calibrationIndexes, double[] adc, double[] refer) ReadFile(string path)
         {
             if (path == null || !File.Exists(path))
                 throw new Exception("Отсутствует файл с данными");
@@ -253,7 +253,7 @@ namespace Calibration
             if (lineCount <= 2) throw new Exception(
                         "Пустой файл или нет данных");
 
-            double[] ads = new double[lineCount - 2];
+            double[] adc = new double[lineCount - 2];
             double[] @ref = new double[lineCount - 2];
             int[] indexes = new int[lineCount - 2];
             int calibratedPoints = 0;
@@ -286,7 +286,7 @@ namespace Calibration
                         "разделитель или неправильное число столбцов");
 
                 if (double.TryParse(lines[0].Replace(',', '.'), out double t1))
-                    ads[index] = t1;
+                    adc[index] = t1;
                 else
                     break;
 
@@ -304,18 +304,18 @@ namespace Calibration
 
             if (index < lineCount - 2)
             {
-                Array.Resize(ref ads, index);
+                Array.Resize(ref adc, index);
                 Array.Resize(ref @ref, index);
             }
 
             if (calibratedPoints == 0)
-                for (calibratedPoints = 0; calibratedPoints < ads.Length; calibratedPoints++)
+                for (calibratedPoints = 0; calibratedPoints < adc.Length; calibratedPoints++)
                     indexes[calibratedPoints] = calibratedPoints;
 
             if (calibratedPoints < indexes.Length)
                 Array.Resize(ref indexes, calibratedPoints);
 
-            return (pow, indexes, ads, @ref);
+            return (pow, indexes, adc, @ref);
         }
 
         #endregion
@@ -463,7 +463,7 @@ namespace Calibration
             string head,
             double[] coeffs,
             int[] calibration,
-            double[] t_ads,
+            double[] t_adc,
             double[] t_ref,
             double[] t,
             double[] dt,
@@ -499,8 +499,8 @@ namespace Calibration
                     j++;
 
                 line = !double.IsInfinity(et[i])
-                    ? $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2} {(calibr ? "*" : ""),10}"
-                    : $"{t_ads[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""),10}";
+                    ? $"{t_adc[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2} {(calibr ? "*" : ""),10}"
+                    : $"{t_adc[i],11:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""),10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
@@ -553,7 +553,7 @@ namespace Calibration
             string head,
             double[] coeffs,
             int[] calibration,
-            double[] t_ads,
+            double[] t_adc,
             double[] t_normalized,
             PointsNormilizer t_normalizer,
             double[] t_ref,
@@ -590,8 +590,8 @@ namespace Calibration
                     j++;
 
                 line = !double.IsInfinity(et[i])
-                    ? $"{t_ads[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2} {(calibr ? "*" : ""), 10}"
-                    : $"{t_ads[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""), 10}";
+                    ? $"{t_adc[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {et[i],15:p2} {(calibr ? "*" : ""), 10}"
+                    : $"{t_adc[i],11:f3} {t_normalized[i],15:f3} {t_ref[i],15:f3} {t[i],15:f3} {dt[i],15:f3} {"деление на 0",15} {(calibr ? "*" : ""), 10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);

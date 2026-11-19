@@ -14,14 +14,14 @@ namespace Calibration
         public double MaxRelativeDeviation { get; init; }
 
         public FitReport(
-            double[] calibration_p_ads,
-            double[] calibration_t_ads,
+            double[] calibration_p_adc,
+            double[] calibration_t_adc,
             double[] p_ref,
             double[] dp,
             double p_range,
             double[,] coeffs)
         {
-            var H = BuildDesignMatrix(coeffs.GetLength(0) - 1, coeffs.GetLength(1) - 1, calibration_p_ads, calibration_t_ads);
+            var H = BuildDesignMatrix(coeffs.GetLength(0) - 1, coeffs.GetLength(1) - 1, calibration_p_adc, calibration_t_adc);
 
             var svd = H.Svd(computeVectors: false);
             double cond = svd.S[0] / svd.S[^1];
@@ -31,7 +31,7 @@ namespace Calibration
 
             ConditionNumber = cond;
             Rank = rank;
-            Points = calibration_p_ads.Length;
+            Points = calibration_p_adc.Length;
             Coefficients = coeffs.GetLength(0) * coeffs.GetLength(1);
             StandardDeviation = GetStandardDeviation(dp);
             RelativeStandardDeviation = StandardDeviation / p_range;

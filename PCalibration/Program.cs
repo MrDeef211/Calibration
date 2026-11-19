@@ -20,13 +20,11 @@ namespace Calibration
                 || args[1].Contains(".svg"))
                 ? args[1] : fileNameOnly + "Result.txt";
 
-            int t_pow, p_pow;
-            int[] p_calibrationIndexes;
-            double[] p_ads, t_ads, p_ref;
+            PressureData pressureData;
 
             try
             {
-                (p_pow, t_pow, p_calibrationIndexes, p_ads, t_ads, p_ref) = ReadFile(dataFileName);
+                pressureData = ReadFile(dataFileName);
             }
             catch (Exception ex)
             {
@@ -36,19 +34,19 @@ namespace Calibration
 
 #if VISUAL
 
-            Visualizer.DrawPoints(p_ads, t_ads, p_ref, "Входные данные");
+            Visualizer.DrawPoints(pressureData.P_Adc, pressureData.T_Adc, pressureData.P_Values, "Входные данные");
 
 #endif
 
-            double[] calibrationt_p_ads = new double[p_calibrationIndexes.Length];
-            double[] calibrationt_t_ads = new double[p_calibrationIndexes.Length];
-            double[] calibrationt_ref = new double[p_calibrationIndexes.Length];
+            double[] calibrationt_p_adc = new double[pressureData.CalibrationIndexes.Length];
+            double[] calibrationt_t_adc = new double[pressureData.CalibrationIndexes.Length];
+            double[] calibrationt_ref = new double[pressureData.CalibrationIndexes.Length];
 
-            for (int i = 0; i < p_calibrationIndexes.Length; i++)
+            for (int i = 0; i < pressureData.CalibrationIndexes.Length; i++)
             {
-                calibrationt_p_ads[i] = p_ads[p_calibrationIndexes[i]];
-                calibrationt_t_ads[i] = t_ads[p_calibrationIndexes[i]];
-                calibrationt_ref[i] = p_ref[p_calibrationIndexes[i]];
+                calibrationt_p_adc[i] = pressureData.P_Adc[pressureData.CalibrationIndexes[i]];
+                calibrationt_t_adc[i] = pressureData.T_Adc[pressureData.CalibrationIndexes[i]];
+                calibrationt_ref[i] = pressureData.P_Values[pressureData.CalibrationIndexes[i]];
             }
 
             double[] p = [];
@@ -56,11 +54,11 @@ namespace Calibration
 
             #region Прямой 
 
-            double p_min = p_ads.Min();
-            double p_max = p_ads.Max();
+            double p_adcMin = pressureData.P_AdcMin;
+            double p_adcMax = pressureData.P_AdcMax;
 
-            double t_min = t_ads.Min();
-            double t_max = t_ads.Max();
+            double t_adcMin = pressureData.T_AdcMin;
+            double t_adcMax = pressureData.T_AdcMax;
 
             double[,] coefficients = new double[0, 0];
 
@@ -70,22 +68,22 @@ namespace Calibration
             try
             {
 
-                p_normilizer = new(p_min, p_max, 0.1);
-                t_normilizer = new(t_min, t_max, 0.1);
+                p_normilizer = new(p_adcMin, p_adcMax, 0.1);
+                t_normilizer = new(t_adcMin, t_adcMax, 0.1);
 
                 coefficients = Polyfit2(
-                p_pow,
-                t_pow,
-                p_normilizer.Normilize(calibrationt_p_ads),
-                t_normilizer.Normilize(calibrationt_t_ads),
+                pressureData.P_Pow,
+                pressureData.T_Pow,
+                p_normilizer.Normilize(calibrationt_p_adc),
+                t_normilizer.Normilize(calibrationt_t_adc),
                 calibrationt_ref);
 
                 p = Calculate(
                     coefficients,
-                    p_normilizer.Normilize(p_ads),
-                    t_normilizer.Normilize(t_ads));
+                    p_normilizer.Normilize(pressureData.P_Adc),
+                    t_normilizer.Normilize(pressureData.T_Adc));
 
-                dp = Difference(p, p_ref);
+                dp = Difference(p, pressureData.P_Values);
             }
             catch (Exception e)
             {
@@ -96,15 +94,12 @@ namespace Calibration
             WriteFile(
                 resultFileName,
                 "Прямой QR метод",
-                coefficients,
-                p_calibrationIndexes,
-                p_ads, t_ads,
-                p_normilizer.Normilize(p_ads),
-                p_normilizer,
-                t_normilizer.Normilize(t_ads),
-                t_normilizer,
-                p_ref, p, dp,
-                Quotient(dp, p_ref.Max())
+                pressureData,
+                coefficients,                
+                p_normilizer.Normilize(pressureData.P_Adc),
+                t_normilizer.Normilize(pressureData.T_Adc),
+                p, dp,
+                Quotient(dp, pressureData.P_Max - pressureData.P_Min)
             );
             
 
@@ -113,11 +108,11 @@ namespace Calibration
                 PressureMonotonicityReport monotonicityReport = new(coefficients);
 
                 FitReport fitReport = new(
-                    p_normilizer.Normilize(calibrationt_p_ads),
-                    t_normilizer.Normilize(calibrationt_t_ads),
-                    p_ref,
+                    p_normilizer.Normilize(calibrationt_p_adc),
+                    t_normilizer.Normilize(calibrationt_t_adc),
+                    pressureData.P_Values,
                     dp,
-                    p_ref.Max(),
+                    pressureData.P_Max - pressureData.P_Min,
                     coefficients
                 );
 
@@ -130,11 +125,11 @@ namespace Calibration
             catch (Exception ex)
             {
                 Print(ex, resultFileName);
-            }            
+            }
 
 #if VISUAL
 
-            Visualizer.DrawBoth(coefficients, p_normilizer.Normilize(p_ads), t_normilizer.Normilize(t_ads), p_ref, "Полином", "Эталон");
+            Visualizer.DrawBoth(coefficients, p_normilizer.Normilize(pressureData.P_Adc), t_normilizer.Normilize(pressureData.T_Adc), pressureData., "Полином", "Эталон");
 
 #endif
 
@@ -143,7 +138,7 @@ namespace Calibration
 
         #region Чтение
 
-        static (int p_pow, int t_pow, int[] calibrationIndexes, double[] p_ads, double[] t_ads, double[] refer) ReadFile(string path)
+        static PressureData ReadFile(string path)
         {
             if (path == null || !File.Exists(path))
                 throw new Exception("Отсутствует файл с данными");
@@ -157,18 +152,34 @@ namespace Calibration
             if (lineCount <= 2) throw new Exception(
                         "Пустой файл или нет данных");
 
-            double[] p_ads = new double[lineCount - 2];
-            double[] t_ads = new double[lineCount - 2];
+            double[] p_adc = new double[lineCount - 2];
+            double[] t_adc = new double[lineCount - 2];
             double[] @ref = new double[lineCount - 2];
             int[] indexes = new int[lineCount - 2];
             int calibratedPoints = 0;
 
             using StreamReader stream = new(path);
 
-            string? powString = stream.ReadLine() ?? throw new Exception(
+            string powString = stream.ReadLine() ?? throw new Exception(
                         "Пустой файл или нет данных");
 
             string[] powStrings = powString.Split(';');
+
+            string diapasonsString = stream.ReadLine() ?? throw new Exception(
+                "Пустой файл или нет данных");
+
+            string[] diapasonsStrings = diapasonsString.Split(';');
+
+            if (!double.TryParse(diapasonsStrings[0][8..].Replace(',', '.'), out double p_AdcMin)
+                || !double.TryParse(diapasonsStrings[1][8..].Replace(',', '.'), out double p_AdcMax)
+                || !double.TryParse(diapasonsStrings[2][8..].Replace(',', '.'), out double t_AdcMin)
+                || !double.TryParse(diapasonsStrings[3][8..].Replace(',', '.'), out double t_AdcMax)
+                || !double.TryParse(diapasonsStrings[4][5..].Replace(',', '.'), out double p_Min)
+                || !double.TryParse(diapasonsStrings[5][5..].Replace(',', '.'), out double p_Max)
+                || !double.TryParse(diapasonsStrings[6][5..].Replace(',', '.'), out double t_Min)
+                || !double.TryParse(diapasonsStrings[7][5..].Replace(',', '.'), out double t_max))
+                throw new Exception(
+                        "Ошибка при чтении диапазонов работы");
 
             if (!int.TryParse(powStrings[0][5..], out int p_pow) || !int.TryParse(powStrings[1][5..], out int t_pow))
                 throw new Exception(
@@ -194,12 +205,12 @@ namespace Calibration
                         "разделитель или неправильное число столбцов");
 
                 if (double.TryParse(lines[0].Replace(',', '.'), out double p1))
-                    p_ads[index] = p1;
+                    p_adc[index] = p1;
                 else
                     break;
 
                 if (double.TryParse(lines[1].Replace(',', '.'), out double t))
-                    t_ads[index] = t;
+                    t_adc[index] = t;
 
                 if (double.TryParse(lines[2].Replace(',', '.'), out double p2))
                     @ref[index] = p2;
@@ -215,19 +226,33 @@ namespace Calibration
 
             if (index < lineCount - 2)
             {
-                Array.Resize(ref p_ads, index);
-                Array.Resize(ref t_ads, index);
+                Array.Resize(ref p_adc, index);
+                Array.Resize(ref t_adc, index);
                 Array.Resize(ref @ref, index);
             }
 
             if (calibratedPoints == 0)
-                for (calibratedPoints = 0; calibratedPoints < p_ads.Length; calibratedPoints++)
+                for (calibratedPoints = 0; calibratedPoints < p_adc.Length; calibratedPoints++)
                     indexes[calibratedPoints] = calibratedPoints;
 
             if (calibratedPoints < indexes.Length)
                 Array.Resize(ref indexes, calibratedPoints);
 
-            return (p_pow, t_pow, indexes, p_ads, t_ads, @ref);
+            return new PressureData(
+                p_pow, 
+                t_pow, 
+                indexes, 
+                p_adc, 
+                t_adc, 
+                @ref, 
+                p_AdcMin, 
+                p_AdcMax, 
+                t_AdcMin, 
+                t_AdcMax,
+                p_Min,
+                p_Max,
+                t_Min,
+                t_max);
         }
 
         #endregion
@@ -295,7 +320,7 @@ namespace Calibration
         {
             string separator = new('-', 52);
             string header = $"-------------- Отчет об аппроксимации --------------";
-            string cond = $"Число обусловленности:              {report.ConditionNumber:F2} (Норма от 1 до 100000, в идеале меньше 100)";
+            string cond = $"Число обусловленности:              {report.ConditionNumber:F2} (Норма от 1 до 100000)";
             string rank = $"Ранг матрицы:                       {report.Rank} (Должен быть не меньше чем число коэффициентов (pow_t+1)*(pow_p+1))";
             string points = $"Количество калибровочных точек:     {report.Points}";
             string coef = $"Количество коэффициентов:           {report.Coefficients}";
@@ -397,15 +422,10 @@ namespace Calibration
         static void WriteFile(
             string path,
             string head,
+            PressureData data,
             double[,] coeffs,
-            int[] calibration,
-            double[] p_ads,
-            double[] t_ads,
             double[] p_normalized,
-            PointsNormilizer p_normalizer,
             double[] t_normalized,
-            PointsNormilizer t_normalizer,
-            double[] t_ref,
             double[] p,
             double[] dp,
             double[] ep,
@@ -425,7 +445,7 @@ namespace Calibration
 
             // Заголовки
             line = $"{"АЦП 1",10} {"АЦП 2",11} {"Норм. 1",10} {"Норм. 2",8} {"Эталон",12}" +
-                $" {"Результат",16} {"Абс. Погрешность",19} {"Отн. Погрешность",16} {"Калибр.",5}";
+                $" {"Результат",16} {"Абс. Погрешность",19} {"Прив. Погрешность",16} {"Калибр.",5}";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
@@ -436,16 +456,12 @@ namespace Calibration
             // Значения
             for (int i = 0; i < p.Length; i++)
             {
-                calibr = calibration.Length > k ? calibration[k] == i : false;
+                calibr = data.CalibrationIndexes.Length > k ? data.CalibrationIndexes[k] == i : false;
                 if (calibr)
                     k++;
 
-
-                line = !double.IsInfinity(ep[i])
-                    ? $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
-                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f5} {ep[i],15:p5} {(calibr ? "*" : ""),8}"
-                    : $"{p_ads[i],11:f3} {t_ads[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
-                    $" {t_ref[i],15:f3} {p[i],15:f3} {dp[i],15:f5} {"деление на 0",15} {(calibr ? "*" : ""),8}";
+                line = $"{data.P_Adc[i],11:f3} {data.T_Adc[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
+                    $" {data.P_Values[i],15:f3} {p[i],15:f3} {dp[i],15:f5} {ep[i],15:p5} {(calibr ? "*" : ""),8}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
@@ -454,14 +470,14 @@ namespace Calibration
             stream.WriteLine("");
             Console.WriteLine("");
 
-            line = $"Диапазон нормирования АЦП 1: ({p_normalizer.Min} - " +
-                $"{p_normalizer.Max}) +- {p_normalizer.Tolerance:p0}";
+            line = $"Диапазон нормирования АЦП давления: {data.P_AdcMin} - " +
+                $"{data.P_AdcMax}, для давления: ({data.P_Min} - {data.P_Max})";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
-            line = $"Диапазон нормирования АЦП 2: ({t_normalizer.Min} - " +
-                $"{t_normalizer.Max}) +- {t_normalizer.Tolerance:p0}";
+            line = $"Диапазон нормирования АЦП температуры: {data.T_AdcMin} - " +
+                $"{data.T_AdcMax}, для температуры: ({data.T_Min} - {data.T_Max})";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
@@ -532,5 +548,73 @@ namespace Calibration
         }
 
         #endregion
+    }
+
+    internal class PressureData
+    {
+        public int P_Pow { get; init; }
+        public int T_Pow { get; init; }
+        public int[] CalibrationIndexes { get; init; }
+        public double[] P_Adc { get; init; }
+        public double[] T_Adc { get; init; }
+        public double[] P_Values { get; init; }
+        public double P_AdcMin { get; init; }
+        public double P_AdcMax { get; init; }
+        public double T_AdcMin { get; init; }
+        public double T_AdcMax { get; init; }
+        public double P_Min { get; init; }
+        public double P_Max { get; init; }
+        public double T_Min { get; init; }
+        public double T_Max { get; init; }
+
+        public PressureData(
+            int p_pow, 
+            int t_pow, 
+            int[] calibrationIndexes, 
+            double[] p_adc,
+            double[] t_adc, 
+            double[] refer,
+            double p_adcMin,
+            double p_adcMax,
+            double t_adcMin,
+            double t_adcMax,
+            double p_min,
+            double p_max,
+            double t_min,
+            double t_max)
+        {
+            P_Pow = p_pow;
+            T_Pow = t_pow;
+            CalibrationIndexes = calibrationIndexes;
+            P_Adc = p_adc;
+            T_Adc = t_adc;
+            P_Values = refer;
+            P_AdcMin = p_adcMin;
+            P_AdcMax = p_adcMax;
+            T_AdcMin = t_adcMin;
+            T_AdcMax = t_adcMax;
+            P_Min = p_min;
+            P_Max = p_max;
+            T_Min = t_min;
+            T_Max = t_max;
+        }
+
+        public PressureData()
+        {
+            P_Pow = 0;
+            T_Pow = 0;
+            CalibrationIndexes = [];
+            P_Adc = [];
+            T_Adc = [];
+            P_Values = [];
+            P_AdcMin = 0;
+            P_AdcMax = 0;
+            T_AdcMin = 0;
+            T_AdcMax = 0;
+            P_Min = 0;
+            P_Max = 0;
+            T_Min = 0;
+            T_Max = 0;
+        }
     }
 }

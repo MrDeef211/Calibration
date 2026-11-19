@@ -56,34 +56,34 @@ public static class MathTool
         return result.AsArray();
     }
 
-    public static double Calculate(double[] coefficients, double t_ads)
+    public static double Calculate(double[] coefficients, double t_adc)
     {
-        return Polynomial.Evaluate(t_ads, coefficients);
+        return Polynomial.Evaluate(t_adc, coefficients);
     }
 
-    public static double[] Calculate(double[] coefficients, double[] t_ads)
+    public static double[] Calculate(double[] coefficients, double[] t_adc)
     {
         var poly = new Polynomial(coefficients);
-        return Array.ConvertAll(t_ads, x => poly.Evaluate(x));
+        return Array.ConvertAll(t_adc, x => poly.Evaluate(x));
     }
 
     public static double[] Calculate(
         double[,] A,
-        double[] p_ads, double[] t_ads)
+        double[] p_adc, double[] t_adc)
     {
-        if (p_ads.Length != t_ads.Length)
-            throw new ArgumentException("Длины p_ads и t_ads должны совпадать");
+        if (p_adc.Length != t_adc.Length)
+            throw new ArgumentException("Длины p_adc и t_adc должны совпадать");
 
         var a = PackA(A);
-        var H = BuildDesignMatrix(A.GetLength(0) - 1, A.GetLength(1) - 1, p_ads, t_ads);
+        var H = BuildDesignMatrix(A.GetLength(0) - 1, A.GetLength(1) - 1, p_adc, t_adc);
 
         return [.. H * a];
     }
 
     public static double Calculate(
         double[,] A,
-        double p_ads,
-        double t_ads)
+        double p_adc,
+        double t_adc)
     {
         int n = A.GetLength(0) - 1;
         int m = A.GetLength(1) - 1;
@@ -93,13 +93,13 @@ public static class MathTool
         {
             double ci = A[i, m];
             for (int j = m - 1; j >= 0; j--)
-                ci = ci * t_ads + A[i, j];
+                ci = ci * t_adc + A[i, j];
             c[i] = ci;
         }
 
         double P = c[n];
         for (int i = n - 1; i >= 0; i--)
-            P = P * p_ads + c[i];
+            P = P * p_adc + c[i];
 
         return P;
     }
@@ -269,14 +269,14 @@ public static class MathTool
     public static double[,] Polyfit2(
         int p_pow,
         int t_pow,
-        double[] p_ads,
-        double[] t_ads,
+        double[] p_adc,
+        double[] t_adc,
         double[] p_ref)
     {
         int K = p_ref.Length;
         int L = (p_pow + 1) * (t_pow + 1);
 
-        var H = BuildDesignMatrix(p_pow, t_pow, p_ads, t_ads);
+        var H = BuildDesignMatrix(p_pow, t_pow, p_adc, t_adc);
         var y = BuildTargetVector(p_ref);
 
         var svd = H.Svd(computeVectors: false);
@@ -297,14 +297,14 @@ public static class MathTool
     //public static double[,] Polyfit2lambda(
     //    int p_pow,
     //    int t_pow,
-    //    double[] p_ads,
-    //    double[] t_ads,
+    //    double[] p_adc,
+    //    double[] t_adc,
     //    double[] p_ref)
     //{
     //    int K = p_ref.Length;
     //    int L = (p_pow + 1) * (t_pow + 1);
 
-    //    var H = BuildDesignMatrix(p_pow, t_pow, p_ads, t_ads);
+    //    var H = BuildDesignMatrix(p_pow, t_pow, p_adc, t_adc);
     //    var y = BuildTargetVector(p_ref);
 
     //    if (K < L) throw new InvalidOperationException("K < L");
@@ -470,10 +470,10 @@ public static class MathTool
     internal static Matrix<double> BuildDesignMatrix(
         int p_pow,
         int t_pow,
-        double[] p_ads,
-        double[] t_ads)
+        double[] p_adc,
+        double[] t_adc)
     {
-        int K = p_ads.Length;
+        int K = p_adc.Length;
         int L = (p_pow + 1) * (t_pow + 1);
         var H = Matrix<double>.Build.Dense(K, L);
 
@@ -482,8 +482,8 @@ public static class MathTool
 
         for (int k = 0; k < K; k++)
         {
-            double u = p_ads[k];
-            double v = t_ads[k];
+            double u = p_adc[k];
+            double v = t_adc[k];
 
             upow[0] = 1.0;
             for (int i = 1; i <= p_pow; i++) upow[i] = upow[i - 1] * u;
