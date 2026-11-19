@@ -13,7 +13,6 @@ public static class Visualizer
             Name: title
         );
 
-
         chart.Show();
     }
 
