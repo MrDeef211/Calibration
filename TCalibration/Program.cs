@@ -65,7 +65,7 @@ namespace Calibration
 
             #region Температура без нормализации
 
-            double[] coeffcients = Polyfit1(
+            double[] coefficients = Polyfit1(
                 pow,
                 calibrationt_adc,
                 calibrationt_ref
@@ -74,7 +74,7 @@ namespace Calibration
             try
             {
                 t = Calculate(
-                    coeffcients,
+                    coefficients,
                     t_adc
                 );
 
@@ -92,7 +92,7 @@ namespace Calibration
                 resultFileName,
                 "Без нормализации",
                 temperatureData,
-                coeffcients,
+                coefficients,
                 t, dt, et               
             );
 
@@ -107,7 +107,7 @@ namespace Calibration
             double min = temperatureData.T_AdcMin;
             double max = temperatureData.T_AdcMax;
 
-            double[] normilizeCoeffcients = [];
+            double[] normilizeCoefficients = [];
 
             PointsNormilizer normilizer;
 
@@ -115,14 +115,14 @@ namespace Calibration
             {
                 normilizer = new PointsNormilizer(min, max, 0.1);
 
-                normilizeCoeffcients = Polyfit1(
+                normilizeCoefficients = Polyfit1(
                     pow,
                     normilizer.Normilize(calibrationt_adc),
                     calibrationt_ref
                 );
 
                 t = Calculate(
-                    normilizeCoeffcients,
+                    normilizeCoefficients,
                     normilizer.Normilize(t_adc)
                 );
 
@@ -139,7 +139,7 @@ namespace Calibration
                 resultFileName,
                 "С нормализацией",
                 temperatureData,
-                normilizeCoeffcients,
+                normilizeCoefficients,
                 normilizer.Normilize(t_adc),
                 t, dt, et,
                 true
@@ -149,7 +149,7 @@ namespace Calibration
 
             try
             {
-                TemperatureMonotonicityReport report = new(normilizeCoeffcients);
+                TemperatureMonotonicityReport report = new(normilizeCoefficients);
 
                 Print(report, resultFileName);
 
@@ -231,7 +231,7 @@ namespace Calibration
 
 //            try
 //            {
-//                TemperatureMonotonicityReport report = new(coeffcients);
+//                TemperatureMonotonicityReport report = new(coefficients);
 
 //                Print(report, resultFileName);
 
