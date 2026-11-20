@@ -275,7 +275,7 @@ namespace Calibration
             string diapasonsString = stream.ReadLine() ?? throw new Exception(
                 "Пустой файл или нет данных");
 
-            string[] diapasonsStrings = Regex.Replace(diapasonsString.Replace(',', '.'), @"\s+", ";").Split(';');
+            string[] diapasonsStrings = Regex.Split(diapasonsString.Replace(',', '.'), @"[\s;]+");
 
             if (powString == null || !int.TryParse(powString, out int pow))
                 throw new Exception(
@@ -297,7 +297,7 @@ namespace Calibration
                 string? line = stream.ReadLine();
                 if (line == null || line == "") break;
 
-                string[] lines = Regex.Replace(line.Replace(',', '.'), @"\s+", ";").Split(';');
+                string[] lines = Regex.Split(line.Replace(',', '.'), @"[\s;]+");
                 if (lines.Length < 2)
                     throw new Exception(
                         "Неверный формат файла: неправильный или отсутствующий " +

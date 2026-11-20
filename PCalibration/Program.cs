@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Plotly.NET;
+using System.Text;
 using System.Text.RegularExpressions;
 using Visualization;
 using static Calibration.MathTool;
@@ -139,6 +140,8 @@ namespace Calibration
 
         #region Чтение
 
+
+
         static PressureData ReadFile(string path)
         {
             if (path == null || !File.Exists(path))
@@ -164,12 +167,12 @@ namespace Calibration
             string powString = stream.ReadLine() ?? throw new Exception(
                         "Пустой файл или нет данных");
 
-            string[] powStrings = Regex.Replace(powString, @"\s+", ";").Split(';');
+            string[] powStrings = Regex.Split(powString.Replace(',', '.'), @"[\s;]+");
 
             string diapasonsString = stream.ReadLine() ?? throw new Exception(
                 "Пустой файл или нет данных");
 
-            string[] diapasonsStrings = Regex.Replace(diapasonsString.Replace(',', '.'), @"\s+", ";").Split(';');
+            string[] diapasonsStrings = Regex.Split(diapasonsString.Replace(',', '.'), @"[\s;]+");
 
             if (!int.TryParse(powStrings[0][5..], out int p_pow) || !int.TryParse(powStrings[1][5..], out int t_pow))
                 throw new Exception(
@@ -195,7 +198,7 @@ namespace Calibration
                 string? line = stream.ReadLine();
                 if (line == null || line == "") break;
 
-                string[] lines = Regex.Replace(line.Replace(',', '.'), @"\s+", ";").Split(';');
+                string[] lines = Regex.Split(line.Replace(',', '.'), @"[\s;]+");
                 if (lines.Length < 3)
                     throw new Exception(
                         "Неверный формат файла: неправильный или отсутствующий " +
@@ -453,7 +456,7 @@ namespace Calibration
             // Значения
             for (int i = 0; i < p.Length; i++)
             {
-                calibr = data.CalibrationIndexes.Length > k ? data.CalibrationIndexes[k] == i : false;
+                calibr = data.CalibrationIndexes.Length > k && data.CalibrationIndexes[k] == i;
                 if (calibr)
                     k++;
 
