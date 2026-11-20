@@ -18,7 +18,6 @@
 
 	<ItemGroup>
     <ProjectReference Include="..\MathTool\MathTool.csproj" />
-    <ProjectReference Include="..\Visualization\Visualization.csproj" />
   </ItemGroup>
 
 </Project>

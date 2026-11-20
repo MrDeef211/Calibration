@@ -1,5 +1,15 @@
-pPow=3;tPow=3
-pADCmin=0;pADCmax=150;tADCmin=2300;tADCmax=3200;pmin=0;pmax=1200;tmin=-30;tmax=150
+pPow=3
+tPow=3
+pADCmin=0
+pADCmax=150
+tADCmin=2300
+tADCmax=3200
+pmin=0
+pmax=1200
+tmin=-30
+tmax=150
+
+
 pADC;tADC;pValue;Calibr
 -2,123	2303,520	0,174	
 24,782	2304,615	200,392	

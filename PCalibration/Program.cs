@@ -1,7 +1,5 @@
-﻿using Plotly.NET;
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
-using Visualization;
 using static Calibration.MathTool;
 
 namespace Calibration
@@ -34,11 +32,6 @@ namespace Calibration
                 return;
             }
 
-#if VISUAL
-
-            Visualizer.DrawPoints(pressureData.P_Adc, pressureData.T_Adc, pressureData.P_Values, "Входные данные");
-
-#endif
 
             double[] calibrationt_p_adc = new double[pressureData.CalibrationIndexes.Length];
             double[] calibrationt_t_adc = new double[pressureData.CalibrationIndexes.Length];
@@ -51,8 +44,8 @@ namespace Calibration
                 calibrationt_ref[i] = pressureData.P_Values[pressureData.CalibrationIndexes[i]];
             }
 
-            double[] p = [];
-            double[] dp = [];
+            double[] p;
+            double[] dp;
 
             #region Прямой 
 
@@ -62,7 +55,7 @@ namespace Calibration
             double t_adcMin = pressureData.T_AdcMin;
             double t_adcMax = pressureData.T_AdcMax;
 
-            double[,] coefficients = new double[0, 0];
+            double[,] coefficients;
 
             PointsNormilizer p_normilizer;
             PointsNormilizer t_normilizer;
@@ -93,20 +86,10 @@ namespace Calibration
                 return;
             }
 
-            WriteFile(
-                resultFileName,
-                "Прямой QR метод",
-                pressureData,
-                coefficients,                
-                p_normilizer.Normilize(pressureData.P_Adc),
-                t_normilizer.Normilize(pressureData.T_Adc),
-                p, dp,
-                Quotient(dp, pressureData.P_Max - pressureData.P_Min)
-            );
-            
-
             try
             {
+                StreamWriter stream = new StreamWriter(resultFileName, false);
+
                 PressureMonotonicityReport monotonicityReport = new(coefficients);
 
                 FitReport fitReport = new(
@@ -118,22 +101,33 @@ namespace Calibration
                     coefficients
                 );
 
-                Print(monotonicityReport, resultFileName);
+                PrintSummaryReport(monotonicityReport, fitReport, stream);
 
-                Print(fitReport, resultFileName);
+                PrintCoefficients(coefficients, stream);
 
-                PrintSummaryReport(monotonicityReport, fitReport, resultFileName);
+                PrintRanges(pressureData, p_normilizer, t_normilizer, stream);
+
+                PrintFitReport(fitReport, stream);
+
+                PrintMonotonicityReport(monotonicityReport, stream);
+
+                WriteFile(
+                    stream,
+                    "Прямой QR метод",
+                    pressureData,
+                    coefficients,
+                    p_normilizer.Normilize(pressureData.P_Adc),
+                    t_normilizer.Normilize(pressureData.T_Adc),
+                    p, dp,
+                    Quotient(dp, pressureData.P_Max - pressureData.P_Min)
+                );
             }
             catch (Exception ex)
             {
                 Print(ex, resultFileName);
             }
 
-#if VISUAL
 
-            Visualizer.DrawBoth(coefficients, p_normilizer.Normilize(pressureData.P_Adc), t_normilizer.Normilize(pressureData.T_Adc), pressureData.P_Values, "Полином", "Эталон");
-
-#endif
 
             #endregion
         }
@@ -164,33 +158,31 @@ namespace Calibration
 
             using StreamReader stream = new(path);
 
-            string powString = stream.ReadLine() ?? throw new Exception(
-                        "Пустой файл или нет данных");
+            string ReadNext() => (stream.ReadLine()
+                    ?? throw new Exception("Пустой файл или нет данных"))
+                .Replace(',', '.').Trim();
 
-            string[] powStrings = Regex.Split(powString.Replace(',', '.'), @"[\s;]+");
+            if (!int.TryParse(ReadNext()[5..], out int p_pow)
+                || !int.TryParse(ReadNext()[5..], out int t_pow))
+                throw new Exception("Ошибка при чтении показателя степени полинома");
 
-            string diapasonsString = stream.ReadLine() ?? throw new Exception(
-                "Пустой файл или нет данных");
+            if (!double.TryParse(ReadNext()[8..], out double p_AdcMin)
+                || !double.TryParse(ReadNext()[8..], out double p_AdcMax)
+                || !double.TryParse(ReadNext()[8..], out double t_AdcMin)
+                || !double.TryParse(ReadNext()[8..], out double t_AdcMax)
+                || !double.TryParse(ReadNext()[5..], out double p_Min)
+                || !double.TryParse(ReadNext()[5..], out double p_Max)
+                || !double.TryParse(ReadNext()[5..], out double t_Min)
+                || !double.TryParse(ReadNext()[5..], out double t_max))
+                throw new Exception("Ошибка при чтении диапазонов работы");
 
-            string[] diapasonsStrings = Regex.Split(diapasonsString.Replace(',', '.'), @"[\s;]+");
 
-            if (!int.TryParse(powStrings[0][5..], out int p_pow) || !int.TryParse(powStrings[1][5..], out int t_pow))
-                throw new Exception(
-                        "Ошибка при чтении показателя степени полинома");
-
-            if (!double.TryParse(diapasonsStrings[0][8..], out double p_AdcMin)
-                || !double.TryParse(diapasonsStrings[1][8..], out double p_AdcMax)
-                || !double.TryParse(diapasonsStrings[2][8..], out double t_AdcMin)
-                || !double.TryParse(diapasonsStrings[3][8..], out double t_AdcMax)
-                || !double.TryParse(diapasonsStrings[4][5..], out double p_Min)
-                || !double.TryParse(diapasonsStrings[5][5..], out double p_Max)
-                || !double.TryParse(diapasonsStrings[6][5..], out double t_Min)
-                || !double.TryParse(diapasonsStrings[7][5..], out double t_max))
-                throw new Exception(
-                        "Ошибка при чтении диапазонов работы");
-
-            // Пропускаю заголовки
-            stream.ReadLine();
+            string head = "";
+            // Ищу заголовки
+            while(!head.StartsWith("pADC"))
+            {
+                head = stream.ReadLine() ?? "";
+            }
 
             int index = 0;
             while (index < lineCount - 2)
@@ -239,15 +231,15 @@ namespace Calibration
                 Array.Resize(ref indexes, calibratedPoints);
 
             return new PressureData(
-                p_pow, 
-                t_pow, 
-                indexes, 
-                p_adc, 
-                t_adc, 
-                @ref, 
-                p_AdcMin, 
-                p_AdcMax, 
-                t_AdcMin, 
+                p_pow,
+                t_pow,
+                indexes,
+                p_adc,
+                t_adc,
+                @ref,
+                p_AdcMin,
+                p_AdcMax,
+                t_AdcMin,
                 t_AdcMax,
                 p_Min,
                 p_Max,
@@ -266,7 +258,7 @@ namespace Calibration
             stream.WriteLine(ex.Message);
         }
 
-        static void Print(PressureMonotonicityReport report, string path)
+        static void PrintMonotonicityReport(PressureMonotonicityReport report, StreamWriter stream)
         {
             string separator = new('-', 52);
             string header = $"--------------- Отчет о монотонности ---------------";
@@ -298,7 +290,6 @@ namespace Calibration
             Console.WriteLine(separator);
             Console.WriteLine();
 
-            using StreamWriter stream = new(path, true);
             stream.WriteLine();
             stream.WriteLine(header);
             stream.WriteLine(verdict);
@@ -316,7 +307,7 @@ namespace Calibration
             stream.WriteLine();
         }
 
-        static void Print(FitReport report, string path)
+        static void PrintFitReport(FitReport report, StreamWriter stream)
         {
             string separator = new('-', 52);
             string header = $"-------------- Отчет об аппроксимации --------------";
@@ -340,7 +331,6 @@ namespace Calibration
             Console.WriteLine(separator);
             Console.WriteLine();
 
-            using StreamWriter stream = new(path, true);
             stream.WriteLine();
             stream.WriteLine(header);
             stream.WriteLine(cond);
@@ -356,7 +346,7 @@ namespace Calibration
 
         static void PrintSummaryReport(
             PressureMonotonicityReport monoReport,
-            FitReport fitReport, string path)
+            FitReport fitReport, StreamWriter stream)
         {
             string separator = new('=', 64);
             string header = "================== ИТОГОВЫЙ СТАТУС КАЛИБРОВКИ ==================";
@@ -412,81 +402,50 @@ namespace Calibration
                 Console.WriteLine(line);
             }
 
-            using StreamWriter stream = new(path, true);
             foreach (var line in lines)
             {
                 stream.WriteLine(line);
             }
         }
 
-        static void WriteFile(
-            string path,
-            string head,
-            PressureData data,
-            double[,] coeffs,
-            double[] p_normalized,
-            double[] t_normalized,
-            double[] p,
-            double[] dp,
-            double[] ep,
-            bool append = false)
+        static void PrintRanges(PressureData data, PointsNormilizer pNormilizer, PointsNormilizer tNormilizer, StreamWriter stream)
         {
-            using StreamWriter stream = new(path, append);
+            string line;
 
-            // Заголовок
-            int @char = 120 - head.Length;
-
-            string headDecor = new('=', @char / 2);
-
-            string line = $"{headDecor}|{head}|{headDecor}";
-
-            stream.WriteLine(line);
-            Console.WriteLine(line);
-
-            // Заголовки
-            line = $"{"АЦП 1",10} {"АЦП 2",11} {"Норм. 1",10} {"Норм. 2",8} {"Эталон",12}" +
-                $" {"Результат",16} {"Абс. Погрешность",19} {"Прив. Погрешность",16} {"Калибр.",5}";
-
-            stream.WriteLine(line);
-            Console.WriteLine(line);
-
-
-            int k = 0;
-            bool calibr = false;
-            // Значения
-            for (int i = 0; i < p.Length; i++)
-            {
-                calibr = data.CalibrationIndexes.Length > k && data.CalibrationIndexes[k] == i;
-                if (calibr)
-                    k++;
-
-                line = $"{data.P_Adc[i],11:f3} {data.T_Adc[i],11:f3} {p_normalized[i],8:f3} {t_normalized[i],8:f3}" +
-                    $" {data.P_Values[i],15:f3} {p[i],15:f3} {dp[i],15:f3} {ep[i],15:p3} {(calibr ? "*" : ""),8}";
-
-                stream.WriteLine(line);
-                Console.WriteLine(line);
-            }
-            // Диапазон
             stream.WriteLine("");
             Console.WriteLine("");
 
             line = $"Диапазон нормирования АЦП давления: {data.P_AdcMin} - " +
-                $"{data.P_AdcMax}, для давления: ({data.P_Min} - {data.P_Max})";
+                $"{data.P_AdcMax} +- {pNormilizer.Tolerance:p0}, для давления: ({data.P_Min} - {data.P_Max})";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
             line = $"Диапазон нормирования АЦП температуры: {data.T_AdcMin} - " +
-                $"{data.T_AdcMax}, для температуры: ({data.T_Min} - {data.T_Max})";
+                $"{data.T_AdcMax} +- {tNormilizer.Tolerance:p0}, для температуры: ({data.T_Min} - {data.T_Max})";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
 
-            // Коэффициенты 
+            stream.WriteLine("");
+            Console.WriteLine("");
+        }
+
+        static void PrintCoefficients(double[,] coeffs, StreamWriter stream)
+        {
+            string line;
+
             int n = coeffs.GetLength(0) - 1;
             int m = coeffs.GetLength(1) - 1;
 
             const int w = 16;
+
+            stream.WriteLine();
+            Console.WriteLine();
+
+            line = $"Коэффициенты:";
+            stream.WriteLine(line);
+            Console.WriteLine(line);
 
             stream.WriteLine();
             Console.WriteLine();
@@ -544,6 +503,52 @@ namespace Calibration
 
             stream.WriteLine("");
             Console.WriteLine("");
+        }
+
+        static void WriteFile(
+            StreamWriter stream,
+            string head,
+            PressureData data,
+            double[,] coeffs,
+            double[] p_normalized,
+            double[] t_normalized,
+            double[] p,
+            double[] dp,
+            double[] ep)
+        {
+            // Заголовок
+            int @char = 120 - head.Length;
+
+            string headDecor = new('=', @char / 2);
+
+            string line = $"{headDecor}|{head}|{headDecor}";
+
+            stream.WriteLine(line);
+            Console.WriteLine(line);
+
+            // Заголовки
+            line = $"{"АЦП Давления",15} {"АЦП Температуры",16} {"Норм. 1",10} {"Норм. 2",8} {"Эталон",10}" +
+                $" {"Результат",12} {"Абс. Погрешность",18} {"Прив. Погрешность",16} {"Калибр.",5}";
+
+            stream.WriteLine(line);
+            Console.WriteLine(line);
+
+
+            int k = 0;
+            bool calibr = false;
+            // Значения
+            for (int i = 0; i < p.Length; i++)
+            {
+                calibr = data.CalibrationIndexes.Length > k && data.CalibrationIndexes[k] == i;
+                if (calibr)
+                    k++;
+
+                line = $"{data.P_Adc[i],12:f3} {data.T_Adc[i],15:f3} {p_normalized[i],13:f3} {t_normalized[i],8:f3}" +
+                    $" {data.P_Values[i],11:f3} {p[i],12:f3} {dp[i],13:f3} {ep[i],16:p3} {(calibr ? "*" : ""),10}";
+
+                stream.WriteLine(line);
+                Console.WriteLine(line);
+            }
 
         }
 
@@ -568,11 +573,11 @@ namespace Calibration
         public double T_Max { get; init; }
 
         public PressureData(
-            int p_pow, 
-            int t_pow, 
-            int[] calibrationIndexes, 
+            int p_pow,
+            int t_pow,
+            int[] calibrationIndexes,
             double[] p_adc,
-            double[] t_adc, 
+            double[] t_adc,
             double[] refer,
             double p_adcMin,
             double p_adcMax,
