@@ -129,6 +129,8 @@ namespace Calibration.IO
             using StreamWriter stream = new(path, false);
             Console.WriteLine(ex.Message);
             stream.WriteLine(ex.Message);
+
+            stream.Flush();
         }
 
         internal static void PrintMonotonicityReport(PressureMonotonicityReport report, StreamWriter stream)
@@ -178,6 +180,8 @@ namespace Calibration.IO
             stream.WriteLine(vFirstViol);
             stream.WriteLine(separator);
             stream.WriteLine();
+
+            stream.Flush();
         }
 
         internal static void PrintFitReport(FitReport report, StreamWriter stream)
@@ -215,6 +219,8 @@ namespace Calibration.IO
             stream.WriteLine(confidenceInterval);
             stream.WriteLine(separator);
             stream.WriteLine();
+
+            stream.Flush();
         }
 
         internal static void PrintSummaryReport(
@@ -279,6 +285,8 @@ namespace Calibration.IO
             {
                 stream.WriteLine(line);
             }
+
+            stream.Flush();
         }
 
         internal static void PrintRanges(PressureData data, StreamWriter stream)
@@ -302,6 +310,8 @@ namespace Calibration.IO
 
             stream.WriteLine("");
             Console.WriteLine("");
+
+            stream.Flush();
         }
 
         internal static void PrintCoefficients(double[,] coeffs, StreamWriter stream)
@@ -372,6 +382,8 @@ namespace Calibration.IO
 
             stream.WriteLine("");
             Console.WriteLine("");
+
+            stream.Flush();
         }
 
         internal static void WriteFile(
@@ -393,8 +405,8 @@ namespace Calibration.IO
             Console.WriteLine(line);
 
             // Заголовки
-            line = $"{"АЦП_Давления",15}; {"АЦП_Температуры",16}; {"Эталон",10};" +
-                $" {"Результат",12}; {"Абс._Погрешность",18}; {"Прив._Погрешность",16}; {"Калибр.",5}";
+            line = $"{"АЦП_Давления",15} {"АЦП_Температуры",16} {"Эталон",10}" +
+                $" {"Результат",12} {"Абс._Погрешность",18} {"Прив._Погрешность_%",16} {"Калибр.",5}";
 
             stream.WriteLine(line);
             Console.WriteLine(line);
@@ -409,11 +421,13 @@ namespace Calibration.IO
                 if (calibr)
                     k++;
 
-                line = $"{data.P_Adc[i],12:f3}; {data.T_Adc[i],15:f3};" +
-                    $" {data.P_Values[i],14:f3}; {p[i],12:f3}; {dp[i],13:f3}; {ep[i],16:p3}; {(calibr ? "*" : ""),10}";
+                line = $"{data.P_Adc[i],12:f3} {data.T_Adc[i],15:f3}" +
+                    $" {data.P_Values[i],14:f3} {p[i],12:f3} {dp[i],13:f3} {ep[i]*100,16:f3} {(calibr ? "*" : ""),10}";
 
                 stream.WriteLine(line);
                 Console.WriteLine(line);
+
+                stream.Flush();
             }
 
         }
