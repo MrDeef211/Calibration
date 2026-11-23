@@ -1,6 +1,6 @@
-﻿using static Calibration.MathTool;
+﻿using static MathTools.MathTool;
 
-namespace Calibration
+namespace Core.Model.Reports
 {
     public sealed class FitReport
     {
@@ -16,8 +16,8 @@ namespace Calibration
         public FitReport(
             double[] calibration_p_adc,
             double[] calibration_t_adc,
-            double[] p_ref,
             double[] dp,
+            double[] ep,
             double p_range,
             double[,] coeffs)
         {
@@ -27,8 +27,6 @@ namespace Calibration
             double cond = svd.S[0] / svd.S[^1];
             int rank = svd.S.Count(s => s > 1e-10 * svd.S[0]);
 
-            double[] ep = Quotient(dp, p_range);
-
             ConditionNumber = cond;
             Rank = rank;
             Points = calibration_p_adc.Length;
@@ -37,7 +35,7 @@ namespace Calibration
             RelativeStandardDeviation = StandardDeviation / p_range;
             MaxDeviation = dp.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0);
             MaxRelativeDeviation = ep.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0);
-            
+
         }
     }
 }

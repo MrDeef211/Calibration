@@ -1,6 +1,6 @@
 ﻿using MathNet.Numerics.LinearAlgebra;
 
-namespace Calibration
+namespace Core.Model
 {
     public class PointsNormilizer
     {

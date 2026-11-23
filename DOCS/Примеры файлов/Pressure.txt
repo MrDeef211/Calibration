@@ -1,6 +1,6 @@
 pPow=3
 tPow=3
-pADCmin=0
+pADCmin=-50
 pADCmax=150
 tADCmin=2300
 tADCmax=3200

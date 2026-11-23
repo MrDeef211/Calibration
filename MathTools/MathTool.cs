@@ -6,7 +6,7 @@ using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Factorization;
 using MathNet.Numerics.Providers.LinearAlgebra;
 
-namespace Calibration;
+namespace MathTools;
 
 public static class MathTool
 {
@@ -451,27 +451,11 @@ public static class MathTool
         return weights;
     }
 
-    private static double CalculateRss(double[] x, double[] y, int pow)
-    {
-        int n = x.Length;
-        var X = Matrix<double>.Build.Dense(n, pow + 1);
-        for (int i = 0; i < n; i++)
-            for (int j = 0; j <= pow; j++)
-                X[i, j] = Math.Pow(x[i], j);
-
-        var Y = Vector<double>.Build.Dense(y);
-        var Xt = X.Transpose();
-        var beta = (Xt * X).Solve(Xt * Y);
-
-        var residuals = X * beta - Y;
-        return residuals.DotProduct(residuals);
-    }
-
-    internal static Matrix<double> BuildDesignMatrix(
-        int p_pow,
-        int t_pow,
-        double[] p_adc,
-        double[] t_adc)
+    public static Matrix<double> BuildDesignMatrix(
+    int p_pow,
+    int t_pow,
+    double[] p_adc,
+    double[] t_adc)
     {
         int K = p_adc.Length;
         int L = (p_pow + 1) * (t_pow + 1);
@@ -496,6 +480,22 @@ public static class MathTool
                     H[k, j * (p_pow + 1) + i] = upow[i] * vpow[j];
         }
         return H;
+    }
+
+    private static double CalculateRss(double[] x, double[] y, int pow)
+    {
+        int n = x.Length;
+        var X = Matrix<double>.Build.Dense(n, pow + 1);
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j <= pow; j++)
+                X[i, j] = Math.Pow(x[i], j);
+
+        var Y = Vector<double>.Build.Dense(y);
+        var Xt = X.Transpose();
+        var beta = (Xt * X).Solve(Xt * Y);
+
+        var residuals = X * beta - Y;
+        return residuals.DotProduct(residuals);
     }
 
     private static Vector<double> BuildTargetVector(double[] p_ref)

@@ -1,4 +1,4 @@
-﻿namespace Calibration
+﻿namespace Core.Model.Reports
 {
     public enum MonotonicityVerdict
     {
