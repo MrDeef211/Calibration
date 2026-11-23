@@ -18,7 +18,6 @@ namespace Core.Model.Reports
             double[] calibration_t_adc,
             double[] dp,
             double[] ep,
-            double p_range,
             double[,] coeffs)
         {
             var H = BuildDesignMatrix(coeffs.GetLength(0) - 1, coeffs.GetLength(1) - 1, calibration_p_adc, calibration_t_adc);
@@ -32,7 +31,7 @@ namespace Core.Model.Reports
             Points = calibration_p_adc.Length;
             Coefficients = coeffs.GetLength(0) * coeffs.GetLength(1);
             StandardDeviation = GetStandardDeviation(dp);
-            RelativeStandardDeviation = StandardDeviation / p_range;
+            RelativeStandardDeviation = GetStandardDeviation(ep);
             MaxDeviation = dp.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0);
             MaxRelativeDeviation = ep.Max(d => double.IsFinite(d) ? Math.Abs(d) : 0);
 

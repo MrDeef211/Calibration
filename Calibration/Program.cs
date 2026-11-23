@@ -44,22 +44,11 @@ internal class Program
             resultFileName = noParameters ? dataFileName[..dataFileName.LastIndexOf('.')]
                 + "Result.txt" : resultFileName;
 
-            TemperatureData temperatureData;
-            TemperatureCalibrationResult result;
-
             try
             {
-                temperatureData = Temperature.ReadFile(dataFileName);
-                result = Calibrator.CalibrateTemperature(temperatureData);
-            }
-            catch (Exception ex)
-            {
-                Temperature.Print(ex, resultFileName);
-                return;
-            }
+                TemperatureData temperatureData = Temperature.ReadFile(dataFileName);
+                TemperatureCalibrationResult result = Calibrator.CalibrateTemperature(temperatureData);
 
-            try
-            {
                 using StreamWriter stream = new(resultFileName, false);
 
                 Temperature.PrintSummaryReport(result.MonotonicityReport, result, stream);
@@ -95,22 +84,11 @@ internal class Program
             resultFileName = noParameters ? dataFileName[..dataFileName.LastIndexOf('.')]
                 + "Result.txt" : resultFileName;
 
-            PressureData pressureData;
-            PressureCalibrationResult result;
-
             try
             {
-                pressureData = Pressure.ReadFile(dataFileName);
-                result = Calibrator.CalibratePressure(pressureData);
-            }
-            catch (Exception ex)
-            {
-                Pressure.Print(ex, resultFileName);
-                return;
-            }
+                PressureData pressureData = Pressure.ReadFile(dataFileName);
+                PressureCalibrationResult result = Calibrator.CalibratePressure(pressureData);
 
-            try
-            {
                 StreamWriter stream = new(resultFileName, false);
 
                 Pressure.PrintSummaryReport(result.MonotonicityReport, result.FitReport, stream);

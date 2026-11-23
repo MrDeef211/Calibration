@@ -124,7 +124,6 @@ public static class Calibrator
             t_normilizer.Normilize(calibrationt_t_adc),
             dp,
             ep,
-            pressureData.P_Max - pressureData.P_Min,
             coefficients
         );
 
