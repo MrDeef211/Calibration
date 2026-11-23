@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.12.12405.243
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "MathTool\Core.csproj", "{12415A3C-E923-433D-981A-661E7B3C18DE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{12415A3C-E923-433D-981A-661E7B3C18DE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathTools", "MathTools\MathTools.csproj", "{CC677682-41E8-42EB-A96C-6EE0C884E762}"
 EndProject
