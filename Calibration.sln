@@ -5,8 +5,6 @@ VisualStudioVersion = 18.12.12405.243
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{12415A3C-E923-433D-981A-661E7B3C18DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MathTools", "MathTools\MathTools.csproj", "{CC677682-41E8-42EB-A96C-6EE0C884E762}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Calibration", "Calibration\Calibration.csproj", "{1FD9AB9F-8B3E-42FD-9D3A-1B1D3304C87F}"
 EndProject
 Global
@@ -22,12 +20,6 @@ Global
 		{12415A3C-E923-433D-981A-661E7B3C18DE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{12415A3C-E923-433D-981A-661E7B3C18DE}.Visual|Any CPU.ActiveCfg = Release|Any CPU
 		{12415A3C-E923-433D-981A-661E7B3C18DE}.Visual|Any CPU.Build.0 = Release|Any CPU
-		{CC677682-41E8-42EB-A96C-6EE0C884E762}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CC677682-41E8-42EB-A96C-6EE0C884E762}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CC677682-41E8-42EB-A96C-6EE0C884E762}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CC677682-41E8-42EB-A96C-6EE0C884E762}.Release|Any CPU.Build.0 = Release|Any CPU
-		{CC677682-41E8-42EB-A96C-6EE0C884E762}.Visual|Any CPU.ActiveCfg = Release|Any CPU
-		{CC677682-41E8-42EB-A96C-6EE0C884E762}.Visual|Any CPU.Build.0 = Release|Any CPU
 		{1FD9AB9F-8B3E-42FD-9D3A-1B1D3304C87F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1FD9AB9F-8B3E-42FD-9D3A-1B1D3304C87F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1FD9AB9F-8B3E-42FD-9D3A-1B1D3304C87F}.Release|Any CPU.ActiveCfg = Release|Any CPU
