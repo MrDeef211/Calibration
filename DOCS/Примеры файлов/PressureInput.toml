@@ -1,0 +1,38 @@
+#                ИСХОДНЫЕ ДАННЫЕ КАЛИБРОВКИ ДАВЛЕНИЯ
+#==============================================================================
+[identification]
+timestamp = 2026-11-24T12:55:00
+model = "UMT-3"
+serial_number = "SN-2026-0042"
+software_version = "v2.4.1"
+stand_id = "STEND-03"
+user = "Иванов И.И."
+
+[model_parameters]
+method = "Direct QR"
+unit_p = "bar"
+unit_t = "deg"
+normalize = "true"
+polynomial_degree_p = 4
+polynomial_degree_t = 4
+range_p = [0, 1100]
+range_t = [-50, 150]
+adc_range_p = [-50, 150]
+adc_range_t = [2300, 3200]
+max_error_limit = 0.1
+rms_error_limit = 0.1
+max_error_pct_limit = 1
+rms_error_pct_limit = 1
+
+[data]
+# Разделитель: точка с запятой (;)
+measurements_csv = """
+callib;   adc_p;        adc_t;           reference;   value;    abs.error    
+true  ;   0.744;        2810.936;        0.000;       -0.013    -0.013;
+      ;   31.784;       2811.408;        200.000;     199.979;  -0.021;
+      ;   62.934;       2811.658;        400.000;     399.984;  -0.016; 
+true  ;   94.195;       2812.506;        600.000;     599.999;  -0.001;
+true  ;   125.565;      2813.607;        800.000;     799.997;  -0.003;
+    
+"""
+

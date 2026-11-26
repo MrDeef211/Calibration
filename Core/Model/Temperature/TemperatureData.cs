@@ -2,6 +2,7 @@
 {
     public class TemperatureData
     {
+        public bool Normilize { get; set; }
         public int T_Pow { get; init; }
         public int[] CalibrationIndexes { get; init; }
         public double[] T_Adc { get; init; }
@@ -12,6 +13,7 @@
         public double T_Max { get; init; }
 
         public TemperatureData(
+            bool normilize,
             int t_pow,
             int[] calibrationIndexes,
             double[] t_adc,
@@ -21,6 +23,7 @@
             double t_min,
             double t_max)
         {
+            Normilize = normilize;
             T_Pow = t_pow;
             CalibrationIndexes = calibrationIndexes;
             T_Adc = t_adc;

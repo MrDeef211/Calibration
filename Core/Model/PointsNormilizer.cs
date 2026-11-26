@@ -1,4 +1,5 @@
-﻿using MathNet.Numerics.LinearAlgebra;
+﻿using Core.Model.Exceptions;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace Core.Model
 {
@@ -52,9 +53,9 @@ namespace Core.Model
             foreach (var value in values)
             {
                 if (value > Max + Tolerance * length || value < Min - Tolerance * length)
-                    throw new ArgumentException(
+                    throw new DataErrorException(
                         $"значение точки {value} выходит за диапазон "
-                        + $"{Min} - {Max} с запасом {Tolerance:p0}%, " +
+                        + $"{Min} - {Max} с запасом {Tolerance:p0}, " +
                         $"уберите точку, либо поменяйте диапазон");
             }
         }

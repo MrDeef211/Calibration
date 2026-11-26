@@ -2,7 +2,7 @@
 using Core.Model.Temperature;
 using System.Text.RegularExpressions;
 
-namespace Calibration.IO
+namespace Calibration.IO.txt
 {
     internal static class Temperature
     {
@@ -93,7 +93,7 @@ namespace Calibration.IO
             if (calibratedPoints < indexes.Length)
                 Array.Resize(ref indexes, calibratedPoints);
 
-            return new TemperatureData(pow, indexes, adc, @ref, t_AdcMin, t_AdcMax, t_Min, t_max);
+            return new TemperatureData(true, pow, indexes, adc, @ref, t_AdcMin, t_AdcMax, t_Min, t_max);
         }
 
         #endregion

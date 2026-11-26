@@ -1,0 +1,75 @@
+#                ПРОТОКОЛ КАЛИБРОВКИ ДАВЛЕНИЯ
+#==============================================================================
+
+[identification]
+timestamp = "2026-11-24T12:55:00"
+model = "UMT-3"
+serial_number = "SN-2026-0042"
+software_version = "v2.4.1"
+stand_id = "STEND-03"
+user = "Иванов И.И."
+
+[model_parameters]
+method = "Direct QR"
+unit_p = "bar"
+unit_t = "deg"
+normalize = "true"
+polynomial_degree_p = 4
+polynomial_degree_t = 4
+range_p = [0.0, 1100.0]
+range_t = [-50.0, 150.0]
+adc_range_p = [-50.0, 150.0]
+adc_range_t = [2300.0, 3200.0]
+max_error_limit = 0.1
+rms_error_limit = 0.1
+max_error_pct_limit = 1.0
+rms_error_pct_limit = 1.0
+
+[metrology_calib_result]
+status = "✅️ - PASS"
+error_info = "Ошибок нет"
+max_error = 0.004086293283867171
+rms_error = 0.0019830297567703086
+max_error_pct = 3.7148120762428822E-06
+rms_error_pct = 1.8027543243366444E-06
+
+[metrology_test_result]
+status = "✅️ - PASS"
+error_info = "Ошибок нет"
+max_error = 0.05636003610310403
+rms_error = 0.008469684776234852
+max_error_pct = 5.12363964573673E-05
+rms_error_pct = 7.699713432940778E-06
+
+[math_stability]
+status = "✅️ - PASS"
+error_info = "Ошибок нет"
+check_grid = [100, 100]
+monotonicity_ok = true
+monotonicity_violations = 0
+min_derivative_g = 731.5563093374063
+mean_derivative_g = 765.3876553136907
+condition_number = 6113.000858406656
+matrix_rank = 25
+
+[polynomial]
+number_of_coefficients = 25
+formula = """P(u,v) = sum a[i,j] * u^i * v^j,  i=0..4, j=0..4"""
+coefficients = [
+    [404.67033902433974, 16.48158260145566, 2.0711525566579225, 3.006319594192842, -0.05578866931035658],
+    [763.1009776846454, 22.423791570484575, 6.30905710838199, 6.632709832099001, -0.1538887537130583],
+    [-3.4371870684369124, 0.5342136495537063, -0.7807181534003842, 0.3010025246414481, 0.6870819188053383],
+    [0.2595098321505359, -0.27751716980167945, -0.26751931588842576, 0.022264278133450582, 0.005947756067162112],
+    [-0.03427970406964904, -0.02217626700089769, 0.6138680884326406, -0.0066552028151079445, -0.7761273133946724],
+]
+
+[data]
+number_of_points = 132
+measurements_csv = """
+
+callib;   adc_p;        adc_t;           reference;   value;    abs.error    
+true  ;   0.744;        2810.936;        0.000;       -0.013    -0.013;
+      ;   31.784;       2811.408;        200.000;     199.979;  -0.021;
+      ;   62.934;       2811.658;        400.000;     399.984;  -0.016; 
+true  ;   94.195;       2812.506;        600.000;     599.999;  -0.001;
+true  ;   125.565;      2813.607;        800.000;     799.997;  -0.003;"""

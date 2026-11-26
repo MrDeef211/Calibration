@@ -2,7 +2,7 @@
 using Core.Model.Pressure;
 using Core.Model.Reports;
 using Core.Model.Temperature;
-using static MathTools.MathTool;
+using static Core.MathTool;
 
 namespace Core;
 
@@ -42,15 +42,21 @@ public static class Calibrator
 
         normilizer = new PointsNormilizer(min, max, 0.1);
 
+        if (temperatureData.Normilize)
+        {
+            calibrationt_adc = normilizer.Normilize(calibrationt_adc);
+            t_adc = normilizer.Normilize(t_adc);
+        }
+
         coefficients = Polyfit1(
             pow,
-            normilizer.Normilize(calibrationt_adc),
+            calibrationt_adc,
             calibrationt_ref
         );
 
         t = Calculate(
             coefficients,
-            normilizer.Normilize(t_adc)
+            t_adc
         );
 
         dt = Difference(t, t_ref);
@@ -86,11 +92,11 @@ public static class Calibrator
         double[] p;
         double[] dp;
 
-        double p_adcMin = pressureData.P_AdcMin;
-        double p_adcMax = pressureData.P_AdcMax;
+        double p_adcMin = pressureData.Adc_Range_p[0];
+        double p_adcMax = pressureData.Adc_Range_p[1];
 
-        double t_adcMin = pressureData.T_AdcMin;
-        double t_adcMax = pressureData.T_AdcMax;
+        double t_adcMin = pressureData.Adc_Range_t[0];
+        double t_adcMax = pressureData.Adc_Range_t[1];
 
         double[,] coefficients;
 
@@ -101,27 +107,40 @@ public static class Calibrator
         p_normilizer = new(p_adcMin, p_adcMax, 0);
         t_normilizer = new(t_adcMin, t_adcMax, 0);
 
+        double[] p_adc = pressureData.P_Adc;
+        double[] t_adc = pressureData.T_Adc;
+
+        if (pressureData.Normilize)
+        {
+            calibrationt_p_adc = p_normilizer.Normilize(calibrationt_p_adc);
+            calibrationt_t_adc = t_normilizer.Normilize(calibrationt_t_adc);
+            p_adc = p_normilizer.Normilize(pressureData.P_Adc);
+            t_adc = t_normilizer.Normilize(pressureData.T_Adc);
+        }
+
         coefficients = Polyfit2(
-        pressureData.P_Pow,
-        pressureData.T_Pow,
-        p_normilizer.Normilize(calibrationt_p_adc),
-        t_normilizer.Normilize(calibrationt_t_adc),
-        calibrationt_ref);
+            pressureData.P_Pow,
+            pressureData.T_Pow,
+            calibrationt_p_adc,
+            calibrationt_t_adc,
+            calibrationt_ref);
 
         p = Calculate(
             coefficients,
-            p_normilizer.Normilize(pressureData.P_Adc),
-            t_normilizer.Normilize(pressureData.T_Adc));
+            p_adc,
+            t_adc
+        );
 
         dp = Difference(p, pressureData.P_Values);
 
-        double[] ep = Quotient(dp, pressureData.P_Max - pressureData.P_Min);
+        double[] ep = Quotient(dp, pressureData.Range_p[1] - pressureData.Range_p[0]);
 
         PressureMonotonicityReport monotonicityReport = new(coefficients);
 
         FitReport fitReport = new(
-            p_normilizer.Normilize(calibrationt_p_adc),
-            t_normilizer.Normilize(calibrationt_t_adc),
+            pressureData.CalibrationIndexes,
+            calibrationt_p_adc,
+            calibrationt_t_adc,
             dp,
             ep,
             coefficients

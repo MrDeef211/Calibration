@@ -2,8 +2,8 @@
 using Core.Model.Reports;
 using System.Text;
 using System.Text.RegularExpressions;
-
-namespace Calibration.IO
+/*
+namespace Calibration.IO.txt
 {
     internal static class Pressure
     {
@@ -25,7 +25,7 @@ namespace Calibration.IO
 
             double[] p_adc = new double[lineCount - 2];
             double[] t_adc = new double[lineCount - 2];
-            double[] @ref = new double[lineCount - 2];
+            double[] p_ref = new double[lineCount - 2];
             int[] indexes = new int[lineCount - 2];
             int calibratedPoints = 0;
 
@@ -78,7 +78,7 @@ namespace Calibration.IO
                     t_adc[index] = t;
 
                 if (double.TryParse(lines[2], out double p2))
-                    @ref[index] = p2;
+                    p_ref[index] = p2;
 
                 if (lines.Length > 3 && lines[3] == "*")
                 {
@@ -93,7 +93,7 @@ namespace Calibration.IO
             {
                 Array.Resize(ref p_adc, index);
                 Array.Resize(ref t_adc, index);
-                Array.Resize(ref @ref, index);
+                Array.Resize(ref p_ref, index);
             }
 
             if (calibratedPoints == 0)
@@ -104,12 +104,13 @@ namespace Calibration.IO
                 Array.Resize(ref indexes, calibratedPoints);
 
             return new PressureData(
+                true,
                 p_pow,
                 t_pow,
                 indexes,
                 p_adc,
                 t_adc,
-                @ref,
+                p_ref,
                 p_AdcMin,
                 p_AdcMax,
                 t_AdcMin,
@@ -190,11 +191,11 @@ namespace Calibration.IO
             string header = $"-------------- Отчет об аппроксимации --------------";
             string cond = $"Число обусловленности:              {report.ConditionNumber:F2} (Норма от 1 до 100000)";
             string rank = $"Ранг матрицы:                       {report.Rank} (Должен быть не меньше чем число коэффициентов (pow_t+1)*(pow_p+1))";
-            string points = $"Количество калибровочных точек:     {report.Points}";
+            string points = $"Количество калибровочных точек:     {report.CalibrationPoints}";
             string coef = $"Количество коэффициентов:           {report.Coefficients}";
-            string deviations = $"Среднеквадратичная погрешность:     {report.StandardDeviation:f5} ({report.RelativeStandardDeviation:p5}) (Чем меньше тем лучше)";
-            string maxDeviations = $"Максимальная погрешность:          {report.MaxDeviation:f5} ({report.MaxRelativeDeviation:p5}) (Среди заданных точек, чем меньше тем лучше)";
-            string confidenceInterval = $"Доверительный интервал (P = 99.7%): +- {(report.StandardDeviation * 3):f5} (Максимальная погрешность с вероятностью P)";
+            string deviations = $"Среднеквадратичная погрешность:     {report.TestStandardError:f5} ({report.TestRelativeStandardError:p5}) (Чем меньше тем лучше)";
+            string maxDeviations = $"Максимальная погрешность:          {report.TestMaxError:f5} ({report.TestMaxRelativeError:p5}) (Среди заданных точек, чем меньше тем лучше)";
+            string confidenceInterval = $"Доверительный интервал (P = 99.7%): +- {(report.TestStandardError * 3):f5} (Максимальная погрешность с вероятностью P)";
 
             Console.WriteLine();
             Console.WriteLine(header);
@@ -233,7 +234,7 @@ namespace Calibration.IO
             string status;
             string recommendation;
 
-            if (fitReport.Points < fitReport.Coefficients || fitReport.Rank < fitReport.Coefficients)
+            if (fitReport.CalibrationPoints < fitReport.Coefficients || fitReport.Rank < fitReport.Coefficients)
             {
                 status = "КРИТИЧЕСКАЯ ОШИБКА: Ошибка математической модели.";
                 recommendation = "НЕОБХОДИМО ПЕРЕКАЛИБРОВАТЬ. Слишком мало точек измерения или они " +
@@ -253,7 +254,7 @@ namespace Calibration.IO
                     "неравномерно или содержат сильные шумы (ошибки). Проверьте датчики и " +
                     "повторите замеры в других диапазонах.";
             }
-            else if (fitReport.RelativeStandardDeviation > 0.0005 || fitReport.MaxRelativeDeviation > 0.0015)
+            else if (fitReport.TestRelativeStandardError > 0.0005 || fitReport.TestMaxRelativeError > 0.0015)
             {
                 status = "ПРЕДУПРЕЖДЕНИЕ: Нестабильная калибровка (высокая погрешность).";
                 recommendation = "РЕКОМЕНДУЕТСЯ ПЕРЕКАЛИБРОВАТЬ. Точки измерения распределены " +
@@ -321,7 +322,7 @@ namespace Calibration.IO
             int n = coeffs.GetLength(0) - 1;
             int m = coeffs.GetLength(1) - 1;
 
-            const int w = 16;
+            const int w = 24;
 
             stream.WriteLine();
             Console.WriteLine();
@@ -341,7 +342,6 @@ namespace Calibration.IO
             Console.WriteLine();
 
             var sb = new StringBuilder();
-            sb.Append("".PadRight(4));
             for (int j = 0; j <= m; j++)
                 sb.Append($"v^{j}".PadLeft(w));
 
@@ -365,12 +365,8 @@ namespace Calibration.IO
 
                     if (c == 0.0)
                         s = "·";
-                    else if (Math.Abs(c) >= 0.001 && Math.Abs(c) < 1)
-                        s = $"{c:f3}";
-                    else if (Math.Abs(c) >= 1 && Math.Abs(c) < 1000000000)
-                        s = $"{c:f2}";
                     else
-                        s = $"{c:e}";
+                        s = $"{c}\t";
 
                     sb.Append(s.PadLeft(w));
                 }
@@ -434,4 +430,6 @@ namespace Calibration.IO
 
         #endregion
     }
+
 }
+*/

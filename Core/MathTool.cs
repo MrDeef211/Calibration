@@ -1,12 +1,13 @@
 ﻿// Ignore Spelling: xin Polyfit Heteroskedasticity Rss
 
+using Core.Model.Exceptions;
 using MathNet.Numerics;
 using MathNet.Numerics.Distributions;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Factorization;
 using MathNet.Numerics.Providers.LinearAlgebra;
 
-namespace MathTools;
+namespace Core;
 
 public static class MathTool
 {
@@ -72,7 +73,7 @@ public static class MathTool
         double[] p_adc, double[] t_adc)
     {
         if (p_adc.Length != t_adc.Length)
-            throw new ArgumentException("Длины p_adc и t_adc должны совпадать");
+            throw new DataErrorException("Длины p_adc и t_adc должны совпадать, проверьте корректность входных данных");
 
         var a = PackA(A);
         var H = BuildDesignMatrix(A.GetLength(0) - 1, A.GetLength(1) - 1, p_adc, t_adc);
@@ -355,7 +356,7 @@ public static class MathTool
         int n2 = n - drop - n1;
 
         if (n1 <= pow + 1 || n2 <= pow + 1)
-            throw new ArgumentException(
+            throw new DataErrorException(
                 $"Слишком мало точек для теста Голдфелда–Квандта: " +
                 $"n1={n1}, n2={n2}, нужно > {pow + 1} в каждой группе");
 
@@ -510,13 +511,9 @@ public static class MathTool
     {
         int L = (n + 1) * (m + 1);
         if (K < L)
-            throw new InvalidOperationException(
+            throw new DataErrorException(
                 $"Точек {K} < коэффициентов {L}: система недоопределена. " +
                 $"Уменьшите степени или добавьте точки.");
-        if (rankH < L)
-            throw new InvalidOperationException(
-                $"rank(H)={rankH} < {L}: матрица вырождена, значения имеют линейную зависимость, либо лежат на одной прямой " +
-                $"Уменьшите степени или добавьте РАЗНЫЕ точки.");
     }
 
     private static Vector<double> PackA(double[,] A)

@@ -1,4 +1,6 @@
-﻿namespace Core.Model.Reports
+﻿using Core.Model.Exceptions;
+
+namespace Core.Model.Reports
 {
     public enum MonotonicityVerdict
     {
@@ -28,7 +30,8 @@
         double deltaFraction = 0.02)
         {
             ArgumentNullException.ThrowIfNull(A);
-            ArgumentOutOfRangeException.ThrowIfLessThan(nt, 2);
+            if (nt < 2)
+                throw new DataErrorException("Размерность сетки не может быть меньше 2");
 
             int n = A.Length - 1;
 
@@ -138,9 +141,9 @@
             int expectedSign = 0,
             double delta = double.NaN,
             double deltaFraction = 0.02)
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThan(nu, 2);
-            ArgumentOutOfRangeException.ThrowIfLessThan(nv, 2);
+        {            
+            if (nv < 2 || nu < 2)
+                throw new DataErrorException("Размерность сетки не может быть меньше 2");
 
             int n = A.GetLength(0) - 1;
             int m = A.GetLength(1) - 1;
