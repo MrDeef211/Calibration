@@ -31,12 +31,16 @@ internal class Program
 
         string resultFileName = "";
 
+        
+
         if (!noParameters)
         {
+            string dataFileOnlyName = dataFileName[..dataFileName.LastIndexOf('.')];
+
             resultFileName = args.Length > 2
                 && (args[2].Contains(".txt")
                 || args[2].Contains(".toml"))
-                ? args[2] : defaultTemperatureResultFile;
+                ? args[2] :  dataFileOnlyName + "Report.toml";
         }
         /*
         if (temperature)
@@ -82,7 +86,7 @@ internal class Program
         if (pressure)
         {
             dataFileName = noParameters ? defaultPressureFile : dataFileName;
-            resultFileName = noParameters ? defaultPressureResultFile : resultFileName;
+            resultFileName = noParameters || args.Length == 1 ? defaultPressureResultFile : resultFileName;
 
             PressureData? pressureData = null;
             Identification? id = null;
