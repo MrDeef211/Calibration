@@ -17,21 +17,34 @@ internal class Program
         const string defaultTemperatureResultFile = "TemperatureReport.toml";
         const string defaultPressureResultFile = "PressureReport.toml";
 
-        string dataFileName = (args.ElementAtOrDefault(1), calibrationType) switch
+
+        string dataFileName = string.Empty;
+        bool firstParametrType = true;
+
+        if (calibrationType.EndsWith(".toml"))
         {
-            (string file, _) when file.EndsWith(".txt") || file.EndsWith(".toml") => file,
-            (_, "--temperature") => defaultTemperatureFile,
-            (_, "--pressure") => defaultPressureFile,
-            _ => string.Empty
-        };
-
-        bool noParameters = calibrationType == string.Empty || dataFileName == string.Empty;
-        bool temperature = noParameters || calibrationType == "--temperature";
-        bool pressure = noParameters || calibrationType == "--pressure";
-
-        string resultFileName = "";
+            dataFileName = calibrationType;
+            firstParametrType = false;
+        }
+        else
+        {
+            dataFileName = (args.ElementAtOrDefault(1), calibrationType) switch
+            {
+                (string file, _) when file.EndsWith(".txt") || file.EndsWith(".toml") => file,
+                (_, "--temperature") => defaultTemperatureFile,
+                (_, "-t") => defaultTemperatureFile,
+                (_, "--pressure") => defaultPressureFile,
+                (_, "-p") => defaultPressureFile,
+                _ => string.Empty
+            };
+        }
 
         
+        bool noParameters = calibrationType == string.Empty || dataFileName == string.Empty || !firstParametrType; //TODO
+        bool temperature = noParameters || calibrationType == "--temperature" || calibrationType == "-t";
+        bool pressure = noParameters || calibrationType == "--pressure" || calibrationType == "-p";
+
+        string resultFileName = "";        
 
         if (!noParameters)
         {
@@ -40,7 +53,16 @@ internal class Program
             resultFileName = args.Length > 2
                 && (args[2].Contains(".txt")
                 || args[2].Contains(".toml"))
-                ? args[2] :  dataFileOnlyName + "Report.toml";
+                ? args[2] :  dataFileOnlyName + " Report.toml";
+        }
+        if (!firstParametrType)
+        {
+            string dataFileOnlyName = dataFileName[..dataFileName.LastIndexOf('.')];
+
+            resultFileName = args.Length > 1
+                && (args[1].Contains(".txt")
+                || args[1].Contains(".toml"))
+                ? args[1] : dataFileOnlyName + " Report.toml";
         }
         /*
         if (temperature)
@@ -85,8 +107,8 @@ internal class Program
         */
         if (pressure)
         {
-            dataFileName = noParameters ? defaultPressureFile : dataFileName;
-            resultFileName = noParameters || args.Length == 1 ? defaultPressureResultFile : resultFileName;
+            dataFileName = noParameters && firstParametrType ? defaultPressureFile : dataFileName;
+            resultFileName = noParameters && firstParametrType ? defaultPressureResultFile : resultFileName;
 
             PressureData? pressureData = null;
             Identification? id = null;
