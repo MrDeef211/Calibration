@@ -17,8 +17,8 @@ namespace Core.Model.Pressure
         /// Приведённая погрешность в каждой точке
         /// </summary>
         public double[] EP { get; init; }
-        public PointsNormilizer PNormilizer { get; init; }
-        public PointsNormilizer TNormilizer { get; init; }
+        public PointsNormalizer PNormilizer { get; init; }
+        public PointsNormalizer TNormilizer { get; init; }
         public FitReport FitReport { get; init; }
         public PressureMonotonicityReport MonotonicityReport { get; init; }
 
@@ -27,8 +27,8 @@ namespace Core.Model.Pressure
             double[] p,
             double[] dP,
             double[] eP,
-            PointsNormilizer pNormilizer,
-            PointsNormilizer tNormilizer,
+            PointsNormalizer pNormilizer,
+            PointsNormalizer tNormilizer,
             FitReport fitReport,
             PressureMonotonicityReport monotonicityReport)
         {

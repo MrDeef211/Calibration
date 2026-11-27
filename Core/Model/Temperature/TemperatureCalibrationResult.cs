@@ -25,7 +25,7 @@ namespace Core.Model.Temperature
         /// Среднеквадратичная приведённая погрешность
         /// </summary>
         public double NormilizedStandardDeviation { get; init; }
-        public PointsNormilizer Normilizer { get; init; }
+        public PointsNormalizer Normilizer { get; init; }
         public TemperatureMonotonicityReport MonotonicityReport { get; init; }
 
         public TemperatureCalibrationResult(
@@ -35,7 +35,7 @@ namespace Core.Model.Temperature
             double[] eT,
             double standardDeviation,
             double normilizedStandardDeviation,
-            PointsNormilizer normilizer,
+            PointsNormalizer normilizer,
             TemperatureMonotonicityReport monotonicityReport)
         {
             Coefficients = coefficients;

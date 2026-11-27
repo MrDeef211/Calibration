@@ -3,7 +3,7 @@ using MathNet.Numerics.LinearAlgebra;
 
 namespace Core.Model
 {
-    public class PointsNormilizer
+    public class PointsNormalizer
     {
         public double Max { get; init; }
 
@@ -17,7 +17,7 @@ namespace Core.Model
 
         public double InvHalf { get; init; }
 
-        public PointsNormilizer(double min, double max, double tolerance = 0)
+        public PointsNormalizer(double min, double max, double tolerance = 0)
         {
             if (!(max > min))
                 throw new ArgumentException($"max ({max}) должен быть больше min ({min})");
@@ -30,7 +30,7 @@ namespace Core.Model
             InvHalf = 2 / (max - min);
         }
 
-        public double[] Normilize(double[] values)
+        public double[] Normalize(double[] values)
         {
             ValidateRawPoints(values);
             var vec = Vector<double>.Build.Dense(values);
@@ -40,43 +40,43 @@ namespace Core.Model
             return normalized.AsArray(); 
         }
 
-        public double Normilize(double value)
+        public double Normalize(double value)
         {
             ValidateRawPoints([value]);
             return (value - Center) * InvHalf;
         }
 
-        public bool TryNormilize(double[] values, out double[] normilized)
+        public bool TryNormalize(double[] values, out double[] normalized)
         {
             try
             {
                 ValidateRawPoints(values);
                 var vec = Vector<double>.Build.Dense(values);
 
-                var normalized = (vec - Center) * InvHalf;
+                var normalizedVector = (vec - Center) * InvHalf;
 
-                normilized = normalized.AsArray();
+                normalized = normalizedVector.AsArray();
 
                 return true;
             }
             catch
             {
-                normilized = [];
+                normalized = [];
                 return false;
             }            
         }
 
-        public bool TryNormilize(double value, out double normilized)
+        public bool TryNormalize(double value, out double normalized)
         {
             try
             {
                 ValidateRawPoints([value]);
-                normilized = (value - Center) * InvHalf;
+                normalized = (value - Center) * InvHalf;
                 return true;
             }
             catch
             {
-                normilized = 0;
+                normalized = 0;
                 return false;
             }
             

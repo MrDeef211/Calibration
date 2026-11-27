@@ -38,14 +38,14 @@ public static class Calibrator
 
         double[] coefficients;
 
-        PointsNormilizer normilizer;
+        PointsNormalizer normalizer;
 
-        normilizer = new PointsNormilizer(min, max, 0.1);
+        normalizer = new PointsNormalizer(min, max, 0.1);
 
         if (temperatureData.Normilize)
         {
-            calibrationt_adc = normilizer.Normilize(calibrationt_adc);
-            t_adc = normilizer.Normilize(t_adc);
+            calibrationt_adc = normalizer.Normalize(calibrationt_adc);
+            t_adc = normalizer.Normalize(t_adc);
         }
 
         coefficients = Polyfit1(
@@ -71,7 +71,7 @@ public static class Calibrator
             et,
             GetStandardDeviation(dt),
             GetStandardDeviation(et),
-            normilizer,
+            normalizer,
             report
         );
     }
@@ -100,22 +100,22 @@ public static class Calibrator
 
         double[,] coefficients;
 
-        PointsNormilizer p_normilizer;
-        PointsNormilizer t_normilizer;
+        PointsNormalizer p_normalizer;
+        PointsNormalizer t_normalizer;
 
 
-        p_normilizer = new(p_adcMin, p_adcMax, 0);
-        t_normilizer = new(t_adcMin, t_adcMax, 0);
+        p_normalizer = new(p_adcMin, p_adcMax, 0);
+        t_normalizer = new(t_adcMin, t_adcMax, 0);
 
         double[] p_adc = pressureData.P_Adc;
         double[] t_adc = pressureData.T_Adc;
 
         if (pressureData.Normilize)
         {
-            calibrationt_p_adc = p_normilizer.Normilize(calibrationt_p_adc);
-            calibrationt_t_adc = t_normilizer.Normilize(calibrationt_t_adc);
-            p_adc = p_normilizer.Normilize(pressureData.P_Adc);
-            t_adc = t_normilizer.Normilize(pressureData.T_Adc);
+            calibrationt_p_adc = p_normalizer.Normalize(calibrationt_p_adc);
+            calibrationt_t_adc = t_normalizer.Normalize(calibrationt_t_adc);
+            p_adc = p_normalizer.Normalize(pressureData.P_Adc);
+            t_adc = t_normalizer.Normalize(pressureData.T_Adc);
         }
 
         coefficients = Polyfit2(
@@ -146,6 +146,6 @@ public static class Calibrator
             coefficients
         );
 
-        return new PressureCalibrationResult(coefficients, p, dp, ep, p_normilizer, t_normilizer, fitReport, monotonicityReport);
+        return new PressureCalibrationResult(coefficients, p, dp, ep, p_normalizer, t_normalizer, fitReport, monotonicityReport);
     }
 }
