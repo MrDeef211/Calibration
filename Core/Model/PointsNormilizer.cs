@@ -46,6 +46,42 @@ namespace Core.Model
             return (value - Center) * InvHalf;
         }
 
+        public bool TryNormilize(double[] values, out double[] normilized)
+        {
+            try
+            {
+                ValidateRawPoints(values);
+                var vec = Vector<double>.Build.Dense(values);
+
+                var normalized = (vec - Center) * InvHalf;
+
+                normilized = normalized.AsArray();
+
+                return true;
+            }
+            catch
+            {
+                normilized = [];
+                return false;
+            }            
+        }
+
+        public bool TryNormilize(double value, out double normilized)
+        {
+            try
+            {
+                ValidateRawPoints([value]);
+                normilized = (value - Center) * InvHalf;
+                return true;
+            }
+            catch
+            {
+                normilized = 0;
+                return false;
+            }
+            
+        }
+
         private void ValidateRawPoints(double[] values)
         {
             double length = Max - Min;

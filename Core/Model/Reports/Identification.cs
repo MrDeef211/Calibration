@@ -14,14 +14,14 @@ namespace Core.Model.Reports
         public string User {  get; init; }
 
         public Identification(
-            DateTimeOffset timeStamp,
+            DateTimeOffset? timeStamp,
             string model,
             string serialNumber,
             string softwareVersion,
             string standId,
             string user)
-        {
-            TimeStamp = timeStamp;
+        {            
+            TimeStamp = timeStamp ?? DateTimeOffset.Now;
             Model = model;
             SerialNumber = serialNumber;
             SoftwareVersion = softwareVersion;
