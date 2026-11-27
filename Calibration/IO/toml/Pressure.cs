@@ -181,7 +181,7 @@ namespace Calibration.IO.toml
 
             const string header =
                 "#                ПРОТОКОЛ КАЛИБРОВКИ ДАВЛЕНИЯ С ОШИБКОЙ\n" +
-                "#==============================================================================\n\n";
+                "#==============================================================================\n";
 
             File.WriteAllText(path, header + tomlText);
             Console.WriteLine(header + tomlText);
@@ -221,61 +221,14 @@ namespace Calibration.IO.toml
             AddKeyValue(paramsTable, "rms_error_pct_limit", new FloatValueSyntax(data.LimitStandardRelativeError), "Допуск приведённого СКО");
             doc.Tables.Add(paramsTable);
 
-            bool calibOk = result.FitReport.CalibrationMaxError <= data.LimitMaxError
-                && result.FitReport.CalibrationStandardError <= data.LimitStandardError
-                && result.FitReport.CalibrationMaxRelativeError * 100 <= data.LimitMaxRelativeError
-                && result.FitReport.CalibrationRelativeStandardError * 100 <= data.LimitStandardRelativeError;
 
-            string calibError = "Ошибок нет";
-            if (!calibOk)
-            {
-                var errors = new List<string>();
-                if (result.FitReport.CalibrationMaxError > data.LimitMaxError)
-                    errors.Add("Максимальная погрешность больше допустимой");
-                if (result.FitReport.CalibrationStandardError > data.LimitStandardError)
-                    errors.Add("Среднеквадратичная погрешность больше допустимой");
-                if (result.FitReport.CalibrationMaxRelativeError * 100 > data.LimitMaxRelativeError)
-                    errors.Add("Максимальная приведённая погрешность больше допустимой");
-                if (result.FitReport.CalibrationRelativeStandardError * 100 > data.LimitStandardRelativeError)
-                    errors.Add("Среднеквадратичная приведённая погрешность больше допустимой");
-                calibError = string.Join(", ", errors);
-            }
 
-            bool testOk = result.FitReport.TestMaxError <= data.LimitMaxError
-                && result.FitReport.TestStandardError <= data.LimitStandardError
-                && result.FitReport.TestMaxRelativeError * 100 <= data.LimitMaxRelativeError
-                && result.FitReport.TestRelativeStandardError * 100 <= data.LimitStandardRelativeError;
+            bool calibOk = PressureValidator.CheckCalibrationError(data, result, out string calibError);
 
-            string testError = "Ошибок нет";
-            if (!testOk)
-            {
-                var errors = new List<string>();
-                if (result.FitReport.TestMaxError > data.LimitMaxError)
-                    errors.Add("Максимальная погрешность больше допустимой");
-                if (result.FitReport.TestStandardError > data.LimitStandardError)
-                    errors.Add("Среднеквадратичная погрешность больше допустимой");
-                if (result.FitReport.TestMaxRelativeError * 100 > data.LimitMaxRelativeError)
-                    errors.Add("Максимальная приведённая погрешность больше допустимой");
-                if (result.FitReport.TestRelativeStandardError * 100 > data.LimitStandardRelativeError)
-                    errors.Add("Среднеквадратичная приведённая погрешность больше допустимой");
-                testError = string.Join(", ", errors);
-            }
+            bool testOk = PressureValidator.CheckTestError(data, result, out string testError);
 
-            bool mathOk = result.MonotonicityReport.Verdict == MonotonicityVerdict.Ok
-                && result.FitReport.Rank >= result.Coefficients.Length;
+            bool mathOk = PressureValidator.CheckMathError(data, result, out string mathError);
 
-            string mathError = "Ошибок нет";
-            if (!mathOk)
-            {
-                var mathErrors = new List<string>();
-                if (result.MonotonicityReport.Verdict == MonotonicityVerdict.WeakMargin)
-                    mathErrors.Add("Малый запас по монотонности");
-                if (result.MonotonicityReport.Verdict == MonotonicityVerdict.Violated)
-                    mathErrors.Add("Нарушение монотонности");
-                if (result.FitReport.Rank < result.Coefficients.Length)
-                    mathErrors.Add($"rank(H)={result.FitReport.Rank} < {result.Coefficients.Length}: матрица вырождена");
-                mathError = string.Join(", ", mathErrors);
-            }
 
             // [metrology_calib_result]
             var calibTable = new TableSyntax("metrology_calib_result");
@@ -407,7 +360,7 @@ namespace Calibration.IO.toml
 
             const string header =
                 "#                ПРОТОКОЛ КАЛИБРОВКИ ДАВЛЕНИЯ\n" +
-                "#==============================================================================\n\n";
+                "#==============================================================================\n";
 
             File.WriteAllText(path, header + tomlText);
             Console.WriteLine(header + tomlText);

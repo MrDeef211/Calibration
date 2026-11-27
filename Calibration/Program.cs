@@ -2,13 +2,22 @@
 using Core;
 using Core.Model.Pressure;
 using Core.Model.Reports;
-using Core.Model.Temperature;
+using System.Runtime.InteropServices.JavaScript;
+using Tomlyn;
+using Tomlyn.Model;
 
 internal class Program
 {
+
+    private enum CalibrateType
+    {
+        Pressure,
+        Temperature
+    }
+
     private static void Main(string[] args)
     {
-        string calibrationType =
+        string firstArg =
             args.Length > 0
             ? args[0] : string.Empty;
 
@@ -19,52 +28,80 @@ internal class Program
 
 
         string dataFileName;
-        bool firstParametrType = true;
+        bool firstArgName = false;
+        CalibrateType? type = null;
 
-        if (calibrationType.EndsWith(".toml"))
+        if (HasValidExtension(firstArg))
         {
-            dataFileName = calibrationType;
-            firstParametrType = false;
+            dataFileName = firstArg;
+            firstArgName = true;
+
+            string? calibrationType = null;
+
+            try
+            {
+                if (File.Exists(dataFileName))
+                {
+                    string text = File.ReadAllText(dataFileName);
+
+                    TomlTable? root = TomlSerializer.Deserialize(text, CalibrationTomlContext.Default.TomlTable);
+
+                    var identificationBlock = (TomlTable?)root?["identification"];
+
+                    calibrationType = (string?)identificationBlock?["type"];
+                }
+            }
+            catch { }
+
+            type = calibrationType?.ToLowerInvariant() switch
+            {
+                "p" or "press" or "pressure" => CalibrateType.Pressure,
+                "t" or "temp" or "temperature" => CalibrateType.Temperature,
+                _ => null
+            };
         }
         else
         {
-            dataFileName = (args.ElementAtOrDefault(1), calibrationType) switch
+            type = firstArg.ToLowerInvariant() switch
             {
-                (string file, _) when file.EndsWith(".txt") || file.EndsWith(".toml") => file,
-                (_, "--temperature") => defaultTemperatureFile,
-                (_, "-t") => defaultTemperatureFile,
-                (_, "--pressure") => defaultPressureFile,
-                (_, "-p") => defaultPressureFile,
+                "--temperature" or "-temp" or "-t" => CalibrateType.Temperature,
+                "--pressure" or "-press" or "-p" => CalibrateType.Pressure,
+                _ => null
+            };
+
+            if (type == null && args.Length > 0)
+                return;
+
+            dataFileName = (args.ElementAtOrDefault(1), type) switch
+            {
+                (string file, _) when HasValidExtension(file) => file,
+                (_, CalibrateType.Temperature) => defaultTemperatureFile,
+                (_, CalibrateType.Pressure) => defaultPressureFile,
                 _ => string.Empty
             };
         }
 
-        
-        bool noParameters = calibrationType == string.Empty || dataFileName == string.Empty || !firstParametrType; //TODO
-        bool temperature = noParameters || calibrationType == "--temperature" || calibrationType == "-t";
-        bool pressure = noParameters || calibrationType == "--pressure" || calibrationType == "-p";
+        bool unknownType = type == null;
+        bool temperature = unknownType || type == CalibrateType.Temperature;
+        bool pressure = unknownType || type == CalibrateType.Pressure;
 
-        string resultFileName = "";        
+        string resultFileName = "";
 
-        if (!noParameters)
+        if (!unknownType && !firstArgName)
         {
-            string dataFileOnlyName = dataFileName[..dataFileName.LastIndexOf('.')];
+            string dataFileOnlyName = Path.GetFileNameWithoutExtension(dataFileName);
 
-            resultFileName = args.Length > 2
-                && (args[2].Contains(".txt")
-                || args[2].Contains(".toml"))
-                ? args[2] :  dataFileOnlyName + " Report.toml";
+            resultFileName = args.Length > 2 && HasValidExtension(args[2])
+                ? args[2] : dataFileOnlyName + " Report.toml";
         }
-        if (!firstParametrType)
+        else if (!unknownType && firstArgName)
         {
-            string dataFileOnlyName = dataFileName[..dataFileName.LastIndexOf('.')];
+            string dataFileOnlyName = Path.GetFileNameWithoutExtension(dataFileName); ;
 
-            resultFileName = args.Length > 1
-                && (args[1].Contains(".txt")
-                || args[1].Contains(".toml"))
+            resultFileName = args.Length > 1 && HasValidExtension(args[1]) 
                 ? args[1] : dataFileOnlyName + " Report.toml";
         }
-        
+
         if (temperature)
         {
             /*
@@ -107,23 +144,16 @@ internal class Program
         }
         if (pressure)
         {
-            dataFileName = noParameters && firstParametrType ? defaultPressureFile : dataFileName;
-            resultFileName = noParameters && firstParametrType ? defaultPressureResultFile : resultFileName;
+            dataFileName = unknownType ? defaultPressureFile : dataFileName;
+            resultFileName = unknownType ? defaultPressureResultFile : resultFileName;
 
             PressureData? pressureData = null;
             Identification? id = null;
-            try
-            {
-                (pressureData, id) = Pressure.ReadFile(dataFileName);
-            }
-            catch (Exception ex)
-            {
-                Pressure.Write(id, pressureData, ex, resultFileName);
-                return;
-            }
 
             try
             {
+                (pressureData, id) = Pressure.ReadFile(dataFileName);
+
                 PressureCalibrationResult result = Calibrator.CalibratePressure(pressureData);
 
                 Pressure.Write(id, pressureData, result, resultFileName);
@@ -134,5 +164,12 @@ internal class Program
                 return;
             }
         }
+
     }
+
+    private static bool HasValidExtension(string fileName) =>
+        !string.IsNullOrWhiteSpace(fileName) &&
+        (fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) ||
+         fileName.EndsWith(".toml", StringComparison.OrdinalIgnoreCase));
+
 }
