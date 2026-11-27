@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using Tomlyn;
 using Tomlyn.Model;
 using Tomlyn.Syntax;
+using static Calibration.IO.toml.Temperature;
 
 namespace Calibration.IO.toml
 {
@@ -17,7 +18,7 @@ namespace Calibration.IO.toml
         {
             var text = File.ReadAllText(path);
 
-            TomlTable root = TomlSerializer.Deserialize<TomlTable>(text)
+            TomlTable root = TomlSerializer.Deserialize<TomlTable>(text, CalibrationTomlContext.Default.TomlTable)
                 ?? throw new FileErrorException("Файл пустой или неверный формат");
 
             var identificationBlock = (TomlTable)root["identification"];
