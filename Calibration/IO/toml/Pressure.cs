@@ -1,8 +1,11 @@
-﻿using Core.Model.Pressure;
+﻿using Core.Model.Exceptions;
+using Core.Model.Pressure;
 using Core.Model.Reports;
-using OfficeIMO.Toml;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Tomlyn;
+using Tomlyn.Model;
+using Tomlyn.Syntax;
 
 namespace Calibration.IO.toml
 {
@@ -14,14 +17,14 @@ namespace Calibration.IO.toml
         {
             var text = File.ReadAllText(path);
 
-            using var document = TomlDocument.Parse(text);
-            TomlTable root = document.Root;
+            TomlTable root = TomlSerializer.Deserialize<TomlTable>(text)
+                ?? throw new FileErrorException("Файл пустой или неверный формат");
 
-            var identificationBlock = root["identification"].AsTable();
-            var paramsBlock = root["model_parameters"].AsTable();
-            var dataBlock = root["data"].AsTable();
+            var identificationBlock = (TomlTable)root["identification"];
+            var paramsBlock = (TomlTable)root["model_parameters"];
+            var dataBlock = (TomlTable)root["data"];
 
-            string data = dataBlock["measurements_csv"].AsString();
+            string data = (string)dataBlock["measurements_csv"];
 
             string[] dataLines = data.Split('\n')[1..];
             string[] cells;
@@ -46,17 +49,17 @@ namespace Calibration.IO.toml
                     calibratedPoints++;
                 }
 
-                if (double.TryParse(cells[1], NumberStyles.Any, CultureInfo.InvariantCulture, out double p1))
+                if (double.TryParse(cells[1], out double p1))
                     p_adc[index] = p1;
                 else
                     break;
 
-                if (double.TryParse(cells[2], NumberStyles.Any, CultureInfo.InvariantCulture, out double t))
+                if (double.TryParse(cells[2], out double t))
                     t_adc[index] = t;
                 else
                     break;
 
-                if (double.TryParse(cells[3], NumberStyles.Any, CultureInfo.InvariantCulture, out double p2))
+                if (double.TryParse(cells[3], out double p2))
                     p_ref[index] = p2;
                 else
                     break;
@@ -78,46 +81,43 @@ namespace Calibration.IO.toml
             if (calibratedPoints < indexes.Length)
                 Array.Resize(ref indexes, calibratedPoints);
 
-            var time = identificationBlock["timestamp"].GetValue<DateTime>();
+            var time = (TomlDateTime)identificationBlock["timestamp"];
 
-            bool normalize = paramsBlock["normalize"].AsString() == "true";
+            bool normalize = (string)paramsBlock["normalize"] == "true";
 
-            var adc_range_p = paramsBlock["adc_range_p"].AsArray()
-                .Select(x => x.GetValue<double>()).ToArray();
-            var adc_range_t = paramsBlock["adc_range_t"].AsArray()
-                .Select(x => x.GetValue<double>()).ToArray();
-            var range_p = paramsBlock["range_p"].AsArray()
-                .Select(x => x.GetValue<double>()).ToArray();
-            var range_t = paramsBlock["range_t"].AsArray()
-                .Select(x => x.GetValue<double>()).ToArray();
+            TomlArray adc_range_p = (TomlArray)paramsBlock["adc_range_p"];
+            TomlArray adc_range_t = (TomlArray)paramsBlock["adc_range_t"];
+            TomlArray range_p = (TomlArray)paramsBlock["range_p"];
+            TomlArray range_t = (TomlArray)paramsBlock["range_t"];
+
 
             var identification = new Identification(
-                time,
-                identificationBlock["model"].AsString(),
-                identificationBlock["serial_number"].AsString(),
-                identificationBlock["software_version"].AsString(),
-                identificationBlock["stand_id"].AsString(),
-                identificationBlock["user"].AsString()
-            );
+                time.DateTime,
+                (string)identificationBlock["model"],
+                (string)identificationBlock["serial_number"],
+                (string)identificationBlock["software_version"],
+                (string)identificationBlock["stand_id"],
+                (string)identificationBlock["user"]
+                );
 
             var pressureData = new PressureData(
                 normalize,
-                (int)paramsBlock["polynomial_degree_p"].GetValue<long>(),
-                (int)paramsBlock["polynomial_degree_t"].GetValue<long>(),
+                (int)(long)paramsBlock["polynomial_degree_p"],
+                (int)(long)paramsBlock["polynomial_degree_t"],
                 indexes,
-                paramsBlock["unit_p"].AsString(),
-                paramsBlock["unit_t"].AsString(),
+                (string)paramsBlock["unit_p"],
+                (string)paramsBlock["unit_t"],
                 p_adc,
                 t_adc,
                 p_ref,
-                adc_range_p,
-                adc_range_t,
-                range_p,
-                range_t,
-                paramsBlock["max_error_limit"].GetValue<double>(),
-                paramsBlock["max_error_pct_limit"].GetValue<double>(),
-                paramsBlock["rms_error_limit"].GetValue<double>(),
-                paramsBlock["rms_error_pct_limit"].GetValue<double>()
+                adc_range_p.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture)).ToArray(),
+                adc_range_t.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture)).ToArray(),
+                range_p.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture)).ToArray(),
+                range_t.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture)).ToArray(),
+                Convert.ToDouble(paramsBlock["max_error_limit"], CultureInfo.InvariantCulture),
+                Convert.ToDouble(paramsBlock["max_error_pct_limit"], CultureInfo.InvariantCulture),
+                Convert.ToDouble(paramsBlock["rms_error_limit"], CultureInfo.InvariantCulture),                
+                Convert.ToDouble(paramsBlock["rms_error_pct_limit"], CultureInfo.InvariantCulture)
             );
 
             return (pressureData, identification);
@@ -129,52 +129,55 @@ namespace Calibration.IO.toml
 
         public static void Write(Identification? id, PressureData? data, Exception ex, string path)
         {
-            using var document = TomlDocument.Create();
-            TomlTable root = document.Root;
+            var doc = new DocumentSyntax();
 
             if (id != null)
             {
-                TomlTable identification = root.AddTable("identification");
-                identification.Add("timestamp", id.TimeStamp.ToString("yyyy-MM-ddTHH:mm:ss"))
-                    .SetComment("Время калибровки");
-                identification.Add("model", id.Model).SetComment("Модель прибора");
-                identification.Add("serial_number", id.SerialNumber).SetComment("Серийный номер");
-                identification.Add("software_version", id.SoftwareVersion).SetComment("Версия ПО");
-                identification.Add("stand_id", id.StandId).SetComment("Идентификатор стенда");
-                identification.Add("user", id.User).SetComment("Пользователь");
+                var idTable = new TableSyntax("identification");
+                idTable.AddLeadingTriviaNewLine();
+
+                AddKeyValue(idTable, "timestamp", new StringValueSyntax(id.TimeStamp.ToString("yyyy-MM-ddTHH:mm:ss")), "Время калибровки");
+                AddKeyValue(idTable, "model", new StringValueSyntax(id.Model), "Модель прибора");
+                AddKeyValue(idTable, "serial_number", new StringValueSyntax(id.SerialNumber), "Серийный номер");
+                AddKeyValue(idTable, "software_version", new StringValueSyntax(id.SoftwareVersion), "Версия ПО");
+                AddKeyValue(idTable, "stand_id", new StringValueSyntax(id.StandId), "Идентификатор стенда");
+                AddKeyValue(idTable, "user", new StringValueSyntax(id.User), "Пользователь");
+
+                doc.Tables.Add(idTable);
             }
 
             if (data != null)
             {
-                TomlTable modelParams = root.AddTable("model_parameters");
-                modelParams.Add("method", "Direct QR").SetComment("Метод калибровки");
-                modelParams.Add("unit_p", data.Unit_p).SetComment("Единица измерения давления");
-                modelParams.Add("unit_t", data.Unit_t).SetComment("Единица измерения температуры");
-                modelParams.Add("normalize", data.Normilize ? "true" : "false").SetComment("Была ли нормализация");
-                modelParams.Add("polynomial_degree_p", data.P_Pow).SetComment("Степень полинома по давлению");
-                modelParams.Add("polynomial_degree_t", data.T_Pow).SetComment("Степень полинома по температуре");
+                var paramsTable = new TableSyntax("model_parameters");
+                paramsTable.AddLeadingTriviaNewLine();
 
-                modelParams.Add("range_p", new[] { data.Range_p[0], data.Range_p[1] })
-                    .SetComment("Диапазон давления");
-                modelParams.Add("range_t", new[] { data.Range_t[0], data.Range_t[1] })
-                    .SetComment("Диапазон температуры");
-                modelParams.Add("adc_range_p", new[] { data.Adc_Range_p[0], data.Adc_Range_p[1] })
-                    .SetComment("Диапазон АЦП давления");
-                modelParams.Add("adc_range_t", new[] { data.Adc_Range_t[0], data.Adc_Range_t[1] })
-                    .SetComment("Диапазон АЦП температуры");
-                modelParams.Add("max_error_limit", data.LimitMaxError).SetComment("Допуск макс. погрешности");
-                modelParams.Add("rms_error_limit", data.LimitStandardError).SetComment("Допуск СКО");
-                modelParams.Add("max_error_pct_limit", data.LimitMaxRelativeError)
-                    .SetComment("Допуск макс. приведённой погрешности");
-                modelParams.Add("rms_error_pct_limit", data.LimitStandardRelativeError)
-                    .SetComment("Допуск СКО приведённой погрешности");
+                AddKeyValue(paramsTable, "method", new StringValueSyntax("Direct QR"), "Метод калибровки");
+                AddKeyValue(paramsTable, "unit_p", new StringValueSyntax(data.Unit_p), "Единица измерения давления");
+                AddKeyValue(paramsTable, "unit_t", new StringValueSyntax(data.Unit_t), "Единица измерения температуры");
+                AddKeyValue(paramsTable, "normalize", new StringValueSyntax(data.Normilize ? "true" : "false"), "Присутствует нормализация");
+                AddKeyValue(paramsTable, "polynomial_degree_p", new IntegerValueSyntax(data.P_Pow), "Степень полинома по давлению");
+                AddKeyValue(paramsTable, "polynomial_degree_t", new IntegerValueSyntax(data.T_Pow), "Степень полинома по температуре");
+
+                AddKeyValue(paramsTable, "range_p", CreateArray(data.Range_p), "Диапазон давления");
+                AddKeyValue(paramsTable, "range_t", CreateArray(data.Range_t), "Диапазон температуры");
+                AddKeyValue(paramsTable, "adc_range_p", CreateArray(data.Adc_Range_p), "Диапазон АЦП давления");
+                AddKeyValue(paramsTable, "adc_range_t", CreateArray(data.Adc_Range_t), "Диапазон АЦП температуры");
+
+                AddKeyValue(paramsTable, "max_error_limit", new FloatValueSyntax(data.LimitMaxError), "Допуск макс. погрешности");
+                AddKeyValue(paramsTable, "rms_error_limit", new FloatValueSyntax(data.LimitStandardError), "Допуск СКО");
+                AddKeyValue(paramsTable, "max_error_pct_limit", new FloatValueSyntax(data.LimitMaxRelativeError), "Допуск макс. приведённой погрешности");
+                AddKeyValue(paramsTable, "rms_error_pct_limit", new FloatValueSyntax(data.LimitStandardRelativeError), "Допуск приведённого СКО");
+
+                doc.Tables.Add(paramsTable);
             }
 
-            TomlTable resultTable = root.AddTable("result");
-            resultTable.Add("status", FormatStatus(false)).SetComment("Итоговый статус");
-            resultTable.Add("error_info", ex.Message).SetComment("Описание ошибки");
+            var resultTable = new TableSyntax("result");
+            resultTable.AddLeadingTriviaNewLine();
+            AddKeyValue(resultTable, "status", new StringValueSyntax(FormatStatus(false)));
+            AddKeyValue(resultTable, "error_info", new StringValueSyntax(ex.Message));
+            doc.Tables.Add(resultTable);
 
-            string tomlText = document.ToString();
+            string tomlText = doc.ToString();
 
             const string header =
                 "#                ПРОТОКОЛ КАЛИБРОВКИ ДАВЛЕНИЯ С ОШИБКОЙ\n" +
@@ -186,43 +189,38 @@ namespace Calibration.IO.toml
 
         public static void Write(Identification id, PressureData data, PressureCalibrationResult result, string path)
         {
-            using var document = TomlDocument.Create();
-            TomlTable root = document.Root;
+            var doc = new DocumentSyntax();
 
-            // identification
-            TomlTable identification = root.AddTable("identification");
-            identification.Add("timestamp", id.TimeStamp.ToString("yyyy-MM-ddTHH:mm:ss"))
-                .SetComment("Время калибровки");
-            identification.Add("model", id.Model).SetComment("Модель прибора");
-            identification.Add("serial_number", id.SerialNumber).SetComment("Серийный номер");
-            identification.Add("software_version", id.SoftwareVersion).SetComment("Версия ПО");
-            identification.Add("stand_id", id.StandId).SetComment("Идентификатор стенда");
-            identification.Add("user", id.User).SetComment("Пользователь");
+            // [identification]
+            var idTable = new TableSyntax("identification");
+            idTable.AddLeadingTriviaNewLine();
+            AddKeyValue(idTable, "timestamp", new StringValueSyntax(id.TimeStamp.ToString("yyyy-MM-ddTHH:mm:ss")), "Время калибровки");
+            AddKeyValue(idTable, "model", new StringValueSyntax(id.Model), "Модель прибора");
+            AddKeyValue(idTable, "serial_number", new StringValueSyntax(id.SerialNumber), "Серийный номер");
+            AddKeyValue(idTable, "software_version", new StringValueSyntax(id.SoftwareVersion), "Версия ПО");
+            AddKeyValue(idTable, "stand_id", new StringValueSyntax(id.StandId), "Идентификатор стенда");
+            AddKeyValue(idTable, "user", new StringValueSyntax(id.User), "Пользователь");
+            doc.Tables.Add(idTable);
 
-            // model_parameters
-            TomlTable modelParams = root.AddTable("model_parameters");
-            modelParams.Add("method", "Direct QR").SetComment("Метод калибровки");
-            modelParams.Add("unit_p", data.Unit_p).SetComment("Единица измерения давления");
-            modelParams.Add("unit_t", data.Unit_t).SetComment("Единица измерения температуры");
-            modelParams.Add("normalize", data.Normilize ? "true" : "false").SetComment("Была ли нормализация");
-            modelParams.Add("polynomial_degree_p", data.P_Pow).SetComment("Степень полинома по давлению");
-            modelParams.Add("polynomial_degree_t", data.T_Pow).SetComment("Степень полинома по температуре");
-            modelParams.Add("range_p", new[] { data.Range_p[0], data.Range_p[1] })
-                .SetComment("Диапазон давления");
-            modelParams.Add("range_t", new[] { data.Range_t[0], data.Range_t[1] })
-                .SetComment("Диапазон температуры");
-            modelParams.Add("adc_range_p", new[] { data.Adc_Range_p[0], data.Adc_Range_p[1] })
-                .SetComment("Диапазон АЦП давления");
-            modelParams.Add("adc_range_t", new[] { data.Adc_Range_t[0], data.Adc_Range_t[1] })
-                .SetComment("Диапазон АЦП температуры");
-            modelParams.Add("max_error_limit", data.LimitMaxError).SetComment("Допуск макс. погрешности");
-            modelParams.Add("rms_error_limit", data.LimitStandardError).SetComment("Допуск СКО");
-            modelParams.Add("max_error_pct_limit", data.LimitMaxRelativeError)
-                .SetComment("Допуск макс. приведённой погрешности");
-            modelParams.Add("rms_error_pct_limit", data.LimitStandardRelativeError)
-                .SetComment("Допуск СКО приведённой погрешности");
+            // [model_parameters]
+            var paramsTable = new TableSyntax("model_parameters");
+            paramsTable.AddLeadingTriviaNewLine();
+            AddKeyValue(paramsTable, "method", new StringValueSyntax("Direct QR"), "Метод калибровки");
+            AddKeyValue(paramsTable, "unit_p", new StringValueSyntax(data.Unit_p), "Единица измерения давления");
+            AddKeyValue(paramsTable, "unit_t", new StringValueSyntax(data.Unit_t), "Единица измерения температуры");
+            AddKeyValue(paramsTable, "normalize", new StringValueSyntax(data.Normilize ? "true" : "false"), "Присутствует нормализация");
+            AddKeyValue(paramsTable, "polynomial_degree_p", new IntegerValueSyntax(data.P_Pow), "Степень полинома по давлению");
+            AddKeyValue(paramsTable, "polynomial_degree_t", new IntegerValueSyntax(data.T_Pow), "Степень полинома по температуре");
+            AddKeyValue(paramsTable, "range_p", CreateArray(data.Range_p), "Диапазон давления");
+            AddKeyValue(paramsTable, "range_t", CreateArray(data.Range_t), "Диапазон температуры");
+            AddKeyValue(paramsTable, "adc_range_p", CreateArray(data.Adc_Range_p), "Диапазон АЦП давления");
+            AddKeyValue(paramsTable, "adc_range_t", CreateArray(data.Adc_Range_t), "Диапазон АЦП температуры");
+            AddKeyValue(paramsTable, "max_error_limit", new FloatValueSyntax(data.LimitMaxError), "Допуск макс. погрешности");
+            AddKeyValue(paramsTable, "rms_error_limit", new FloatValueSyntax(data.LimitStandardError), "Допуск СКО");
+            AddKeyValue(paramsTable, "max_error_pct_limit", new FloatValueSyntax(data.LimitMaxRelativeError), "Допуск макс. приведённой погрешности");
+            AddKeyValue(paramsTable, "rms_error_pct_limit", new FloatValueSyntax(data.LimitStandardRelativeError), "Допуск приведённого СКО");
+            doc.Tables.Add(paramsTable);
 
-            // metrology_calib_result
             bool calibOk = result.FitReport.CalibrationMaxError <= data.LimitMaxError
                 && result.FitReport.CalibrationStandardError <= data.LimitStandardError
                 && result.FitReport.CalibrationMaxRelativeError * 100 <= data.LimitMaxRelativeError
@@ -243,19 +241,6 @@ namespace Calibration.IO.toml
                 calibError = string.Join(", ", errors);
             }
 
-            TomlTable calibTable = root.AddTable("metrology_calib_result");
-            calibTable.Add("status", FormatStatus(calibOk));
-            calibTable.Add("error_info", calibError);
-            calibTable.Add("max_error", result.FitReport.CalibrationMaxError)
-                .SetComment("Максимальная погрешность");
-            calibTable.Add("rms_error", result.FitReport.CalibrationStandardError)
-                .SetComment("СКО погрешности");
-            calibTable.Add("max_error_pct", result.FitReport.CalibrationMaxRelativeError * 100)
-                .SetComment("Максимальная приведённая погрешность, %");
-            calibTable.Add("rms_error_pct", result.FitReport.CalibrationRelativeStandardError * 100)
-                .SetComment("СКО приведённой погрешности, %");
-
-            // metrology_test_result
             bool testOk = result.FitReport.TestMaxError <= data.LimitMaxError
                 && result.FitReport.TestStandardError <= data.LimitStandardError
                 && result.FitReport.TestMaxRelativeError * 100 <= data.LimitMaxRelativeError
@@ -276,19 +261,6 @@ namespace Calibration.IO.toml
                 testError = string.Join(", ", errors);
             }
 
-            TomlTable testTable = root.AddTable("metrology_test_result");
-            testTable.Add("status", FormatStatus(testOk));
-            testTable.Add("error_info", testError);
-            testTable.Add("max_error", result.FitReport.TestMaxError)
-                .SetComment("Максимальная погрешность");
-            testTable.Add("rms_error", result.FitReport.TestStandardError)
-                .SetComment("СКО погрешности");
-            testTable.Add("max_error_pct", result.FitReport.TestMaxRelativeError * 100)
-                .SetComment("Максимальная приведённая погрешность, %");
-            testTable.Add("rms_error_pct", result.FitReport.TestRelativeStandardError * 100)
-                .SetComment("СКО приведённой погрешности, %");
-
-            // math_stability
             bool mathOk = result.MonotonicityReport.Verdict == MonotonicityVerdict.Ok
                 && result.FitReport.Rank >= result.Coefficients.Length;
 
@@ -305,51 +277,132 @@ namespace Calibration.IO.toml
                 mathError = string.Join(", ", mathErrors);
             }
 
-            TomlTable mathTable = root.AddTable("math_stability");
-            mathTable.Add("status", FormatStatus(mathOk));
-            mathTable.Add("error_info", mathError);
-            mathTable.Add("check_grid", new[] { result.MonotonicityReport.Nu, result.MonotonicityReport.Nv }).SetComment("Сетка проверки");
-            mathTable.Add("monotonicity_ok", result.MonotonicityReport.Verdict == MonotonicityVerdict.Ok)
-                .SetComment("Монотонность соблюдена");
-            mathTable.Add("monotonicity_violations", result.MonotonicityReport.ViolationsCount)
-                .SetComment("Количество нарушений монотонности");
-            mathTable.Add("min_derivative_g", result.MonotonicityReport.MinAbsG)
-                .SetComment("Минимальная производная");
-            mathTable.Add("mean_derivative_g", result.MonotonicityReport.MeanAbsG)
-                .SetComment("Средняя производная");
-            mathTable.Add("condition_number", result.FitReport.ConditionNumber)
-                .SetComment("Число обусловленности");
-            mathTable.Add("matrix_rank", result.FitReport.Rank).SetComment("Ранг матрицы");
+            // [metrology_calib_result]
+            var calibTable = new TableSyntax("metrology_calib_result");
+            calibTable.AddLeadingTriviaNewLine();
+            AddKeyValue(calibTable, "status", new StringValueSyntax(FormatStatus(calibOk)));
+            AddKeyValue(calibTable, "error_info", new StringValueSyntax(calibError));
+            AddKeyValue(calibTable, "max_error", new FloatValueSyntax(result.FitReport.CalibrationMaxError), "Максимальная погрешность");
+            AddKeyValue(calibTable, "rms_error", new FloatValueSyntax(result.FitReport.CalibrationStandardError), "СКО");
+            AddKeyValue(calibTable, "max_error_pct", new FloatValueSyntax(result.FitReport.CalibrationMaxRelativeError * 100), "Максимальная приведённая погрешность, %");
+            AddKeyValue(calibTable, "rms_error_pct", new FloatValueSyntax(result.FitReport.CalibrationRelativeStandardError * 100), "приведённое СКО, %");
+            doc.Tables.Add(calibTable);
 
-            // polynomial
+            // [metrology_test_result]
+            var testTable = new TableSyntax("metrology_test_result");
+            testTable.AddLeadingTriviaNewLine();
+            AddKeyValue(testTable, "status", new StringValueSyntax(FormatStatus(testOk)));
+            AddKeyValue(testTable, "error_info", new StringValueSyntax(testError));
+            AddKeyValue(testTable, "max_error", new FloatValueSyntax(result.FitReport.TestMaxError), "Максимальная погрешность");
+            AddKeyValue(testTable, "rms_error", new FloatValueSyntax(result.FitReport.TestStandardError), "СКО");
+            AddKeyValue(testTable, "max_error_pct", new FloatValueSyntax(result.FitReport.TestMaxRelativeError * 100), "Максимальная приведённая погрешность, %");
+            AddKeyValue(testTable, "rms_error_pct", new FloatValueSyntax(result.FitReport.TestRelativeStandardError * 100), "приведённое СКО, %");
+            doc.Tables.Add(testTable);
+
+            // [math_stability]
+            var mathTable = new TableSyntax("math_stability");
+            mathTable.AddLeadingTriviaNewLine();
+            AddKeyValue(mathTable, "status", new StringValueSyntax(FormatStatus(mathOk)));
+            AddKeyValue(mathTable, "error_info", new StringValueSyntax(mathError));
+            AddKeyValue(mathTable, "check_grid", CreateArray(new[] { result.MonotonicityReport.Nu, result.MonotonicityReport.Nv }), "Сетка проверки");
+            AddKeyValue(mathTable, "monotonicity_ok", new BooleanValueSyntax(result.MonotonicityReport.Verdict == MonotonicityVerdict.Ok), "Монотонность соблюдена");
+            AddKeyValue(mathTable, "monotonicity_violations", new IntegerValueSyntax(result.MonotonicityReport.ViolationsCount), "Количество нарушений монотонности");
+            AddKeyValue(mathTable, "min_derivative_g", new FloatValueSyntax(result.MonotonicityReport.MinAbsG), "Минимальная производная");
+            AddKeyValue(mathTable, "mean_derivative_g", new FloatValueSyntax(result.MonotonicityReport.MeanAbsG), "Средняя производная");
+            AddKeyValue(mathTable, "condition_number", new FloatValueSyntax(result.FitReport.ConditionNumber), "Число обусловленности");
+            AddKeyValue(mathTable, "matrix_rank", new IntegerValueSyntax(result.FitReport.Rank), "Ранг матрицы");
+            doc.Tables.Add(mathTable);
+
+            // [polynomial]
+            var polyTable = new TableSyntax("polynomial");
+            polyTable.AddLeadingTriviaNewLine();
+            AddKeyValue(polyTable, "number_of_coefficients", new IntegerValueSyntax(
+                result.FitReport.Coefficients > 0 ? result.FitReport.Coefficients : result.Coefficients.Length), "Количество коэффициентов");
+            AddKeyValue(polyTable, "formula", new StringValueSyntax(
+                $"P(u,v) = sum a[i,j] * u^i * v^j,  i=0..{data.P_Pow}, j=0..{data.T_Pow}"), "Формула полинома");
+
             int rows = result.Coefficients.GetLength(0);
             int cols = result.Coefficients.GetLength(1);
 
-            var coeffsJagged = new double[rows][];
+            var coeffsArray = new ArraySyntax
+            {
+                OpenBracket = new SyntaxToken(TokenKind.OpenBracket, "[")
+                {
+                    TrailingTrivia = new List<SyntaxTrivia> { new(TokenKind.NewLine, "\n") }
+                },
+                CloseBracket = new SyntaxToken(TokenKind.CloseBracket, "]")
+            };
+
             for (int i = 0; i < rows; i++)
             {
-                coeffsJagged[i] = new double[cols];
+                var rowArray = new ArraySyntax
+                {
+                    OpenBracket = new SyntaxToken(TokenKind.OpenBracket, "[")
+                    {
+                        LeadingTrivia = new List<SyntaxTrivia> { new(TokenKind.Whitespaces, "    ") }
+                    },
+                    CloseBracket = new SyntaxToken(TokenKind.CloseBracket, "]")
+                };
+
                 for (int j = 0; j < cols; j++)
-                    coeffsJagged[i][j] = result.Coefficients[i, j];
+                {
+                    var item = new ArrayItemSyntax
+                    {
+                        Value = new FloatValueSyntax(result.Coefficients[i, j])
+                    };
+
+                    if (j < cols - 1)
+                    {
+                        item.Comma = new SyntaxToken(TokenKind.Comma, ",")
+                        {
+                            TrailingTrivia = new List<SyntaxTrivia> { new(TokenKind.Whitespaces, " ") }
+                        };
+                    }
+
+                    rowArray.Items.Add(item);
+                }
+
+                var rowItem = new ArrayItemSyntax { Value = rowArray };
+
+                if (i < rows - 1)
+                {
+                    rowItem.Comma = new SyntaxToken(TokenKind.Comma, ",")
+                    {
+                        TrailingTrivia = new List<SyntaxTrivia> { new(TokenKind.NewLine, "\n") }
+                    };
+                }
+                else
+                {
+                    rowArray.CloseBracket.TrailingTrivia = new List<SyntaxTrivia>
+                    {
+                        new(TokenKind.NewLine, "\n")
+                    };
+                }
+
+                coeffsArray.Items.Add(rowItem);
             }
 
-            TomlTable polyTable = root.AddTable("polynomial");
-            polyTable.Add("number_of_coefficients", result.FitReport.Coefficients > 0
-                    ? result.FitReport.Coefficients
-                    : rows * cols)
-                .SetComment("Количество коэффициентов");
-            polyTable.Add("formula",
-                    $"P(u,v) = sum a[i,j] * u^i * v^j,  i=0..{data.P_Pow}, j=0..{data.T_Pow}")
-                .SetComment("Формула полинома");
+            var coeffsKeyValue = new KeyValueSyntax("coefficients", coeffsArray);
+            polyTable.Items.Add(coeffsKeyValue);
+            doc.Tables.Add(polyTable);
 
-            polyTable.Add("coefficients", coeffsJagged);
+            // [data]
+            var dataTable = new TableSyntax("data");
+            dataTable.AddLeadingTriviaNewLine();
+            AddKeyValue(dataTable, "number_of_points", new IntegerValueSyntax(data.P_Adc.Length), "Общее количество точек");
 
-            // data
-            TomlTable dataTable = root.AddTable("data");
-            dataTable.Add("number_of_points", data.P_Adc.Length).SetComment("Общее количество точек");
-            dataTable.Add("measurements_csv", BuildMeasurementsCsv(data, result));
+            string rawText = CreateCsvContent(data, result);
 
-            string tomlText = ApplyCustomFormatting(document.ToString());
+            string escapedText = rawText.Replace("\"\"\"", "\\\"\"\"");
+
+            var token = new SyntaxToken(TokenKind.StringMulti, $"\"\"\"\n{escapedText}\"\"\"");
+
+            var csvString = new StringValueSyntax { Token = token };
+            var csvItem = new KeyValueSyntax("measurements_csv", csvString);
+            dataTable.Items.Add(csvItem);
+            doc.Tables.Add(dataTable);
+
+            string tomlText = doc.ToString();
 
             const string header =
                 "#                ПРОТОКОЛ КАЛИБРОВКИ ДАВЛЕНИЯ\n" +
@@ -361,7 +414,54 @@ namespace Calibration.IO.toml
 
         private static string FormatStatus(bool ok) => ok ? "✅️ - PASS" : "❌️ - FAIL";
 
-        private static string BuildMeasurementsCsv(PressureData data, PressureCalibrationResult result)
+        private static void AddKeyValue(TableSyntax table, string key, ValueSyntax value, string? comment = null)
+        {
+            var item = new KeyValueSyntax(key, value);
+            if (comment != null)
+                item.AddTrailingComment(comment);
+            table.Items.Add(item);
+        }
+
+        private static ArraySyntax CreateArray<T>(T[] values) where T : notnull
+        {
+            var array = new ArraySyntax
+            {
+                OpenBracket = new SyntaxToken(TokenKind.OpenBracket, "["),
+                CloseBracket = new SyntaxToken(TokenKind.CloseBracket, "]")
+            };
+
+            for (int i = 0; i < values.Length; i++)
+            {
+                ValueSyntax valueSyntax = values[i] switch
+                {
+                    double d => new FloatValueSyntax(d),
+                    int i2 => new IntegerValueSyntax(i2),
+                    long l => new IntegerValueSyntax(l),
+                    string s => new StringValueSyntax(s),
+                    bool b => new BooleanValueSyntax(b),
+                    _ => throw new NotSupportedException($"Тип {typeof(T)} не поддерживается")
+                };
+
+                var item = new ArrayItemSyntax { Value = valueSyntax };
+
+                if (i < values.Length - 1)
+                {
+                    item.Comma = new SyntaxToken(TokenKind.Comma, ",")
+                    {
+                        TrailingTrivia = new List<SyntaxTrivia>
+                        {
+                            new(TokenKind.Whitespaces, " ")
+                        }
+                    };
+                }
+
+                array.Items.Add(item);
+            }
+
+            return array;
+        }
+
+        private static string CreateCsvContent(PressureData data, PressureCalibrationResult result)
         {
             var lines = new List<string>
             {
@@ -378,64 +478,8 @@ namespace Calibration.IO.toml
                     $"{result.P[i],-10:F3};   " +
                     $"{result.DP[i]:F6}");
             }
+            lines.Add("");
             return string.Join("\n", lines);
-        }
-
-        private static string ApplyCustomFormatting(string tomlText)
-        {
-
-            tomlText = FormatCoefficients(tomlText);
-
-            tomlText = FormatCsvString(tomlText);
-
-            return tomlText;
-        }
-
-        private static string FormatCoefficients(string tomlText)
-        {
-
-            var pattern = @"coefficients\s*=\s*\[\[(.*)\]\]";
-            var match = Regex.Match(tomlText, pattern);
-            if (!match.Success) return tomlText;
-
-            string inner = match.Groups[1].Value.Trim();
-
-            var rows = Regex.Split(inner, @"\]\s*,\s*\[");
-
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine("coefficients = [");
-            foreach (var row in rows)
-            {
-
-                var cleanRow = row.Trim().TrimStart('[').TrimEnd(']');
-                sb.AppendLine($"    [{cleanRow}],");
-            }
-
-            sb.Length -= 3; 
-            sb.AppendLine("\n]");
-
-            return tomlText.Substring(0, match.Index) +
-                   sb.ToString() +
-                   tomlText.Substring(match.Index + match.Length);
-        }
-
-        private static string FormatCsvString(string tomlText)
-        {
-
-            var pattern = @"(measurements_csv\s*=\s*)""(.*?)""";
-            var match = Regex.Match(tomlText, pattern, RegexOptions.Singleline);
-            if (!match.Success) return tomlText;
-
-            string prefix = match.Groups[1].Value; 
-            string rawContent = match.Groups[2].Value;
-
-            string multilineContent = rawContent.Replace("\\n", "\n");
-
-            string replacement = $"{prefix}\"\"\"\n{multilineContent}\n\"\"\"";
-
-            return tomlText.Substring(0, match.Index) +
-                   replacement +
-                   tomlText.Substring(match.Index + match.Length);
         }
 
         #endregion

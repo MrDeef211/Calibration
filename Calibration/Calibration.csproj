@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="OfficeIMO.Toml" Version="3.6.2" />
+    <PackageReference Include="Tomlyn" Version="2.11.1" />
   </ItemGroup>
 
   <ItemGroup>
