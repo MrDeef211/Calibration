@@ -6,7 +6,6 @@ using System.Text.RegularExpressions;
 using Tomlyn;
 using Tomlyn.Model;
 using Tomlyn.Syntax;
-using static Calibration.IO.toml.Temperature;
 
 namespace Calibration.IO.toml
 {
@@ -111,10 +110,10 @@ namespace Calibration.IO.toml
                 p_adc,
                 t_adc,
                 p_ref,
-                adc_range_p.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture)).ToArray(),
-                adc_range_t.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture)).ToArray(),
-                range_p.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture)).ToArray(),
-                range_t.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture)).ToArray(),
+                [.. adc_range_p.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture))],
+                [.. adc_range_t.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture))],
+                [.. range_p.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture))],
+                [.. range_t.Select(x => Convert.ToDouble(x, CultureInfo.InvariantCulture))],
                 Convert.ToDouble(paramsBlock["max_error_limit"], CultureInfo.InvariantCulture),
                 Convert.ToDouble(paramsBlock["max_error_pct_limit"], CultureInfo.InvariantCulture),
                 Convert.ToDouble(paramsBlock["rms_error_limit"], CultureInfo.InvariantCulture),                
@@ -305,7 +304,7 @@ namespace Calibration.IO.toml
             mathTable.AddLeadingTriviaNewLine();
             AddKeyValue(mathTable, "status", new StringValueSyntax(FormatStatus(mathOk)));
             AddKeyValue(mathTable, "error_info", new StringValueSyntax(mathError));
-            AddKeyValue(mathTable, "check_grid", CreateArray(new[] { result.MonotonicityReport.Nu, result.MonotonicityReport.Nv }), "Сетка проверки");
+            AddKeyValue(mathTable, "check_grid", CreateArray([result.MonotonicityReport.Nu, result.MonotonicityReport.Nv]), "Сетка проверки");
             AddKeyValue(mathTable, "monotonicity_ok", new BooleanValueSyntax(result.MonotonicityReport.Verdict == MonotonicityVerdict.Ok), "Монотонность соблюдена");
             AddKeyValue(mathTable, "monotonicity_violations", new IntegerValueSyntax(result.MonotonicityReport.ViolationsCount), "Количество нарушений монотонности");
             AddKeyValue(mathTable, "min_derivative_g", new FloatValueSyntax(result.MonotonicityReport.MinAbsG), "Минимальная производная");
@@ -329,7 +328,7 @@ namespace Calibration.IO.toml
             {
                 OpenBracket = new SyntaxToken(TokenKind.OpenBracket, "[")
                 {
-                    TrailingTrivia = new List<SyntaxTrivia> { new(TokenKind.NewLine, "\n") }
+                    TrailingTrivia = [new(TokenKind.NewLine, "\n")]
                 },
                 CloseBracket = new SyntaxToken(TokenKind.CloseBracket, "]")
             };
@@ -340,7 +339,7 @@ namespace Calibration.IO.toml
                 {
                     OpenBracket = new SyntaxToken(TokenKind.OpenBracket, "[")
                     {
-                        LeadingTrivia = new List<SyntaxTrivia> { new(TokenKind.Whitespaces, "    ") }
+                        LeadingTrivia = [new(TokenKind.Whitespaces, "    ")]
                     },
                     CloseBracket = new SyntaxToken(TokenKind.CloseBracket, "]")
                 };
@@ -354,10 +353,11 @@ namespace Calibration.IO.toml
 
                     if (j < cols - 1)
                     {
-                        item.Comma = new SyntaxToken(TokenKind.Comma, ",")
+                        SyntaxToken syntaxToken = new(TokenKind.Comma, ",")
                         {
-                            TrailingTrivia = new List<SyntaxTrivia> { new(TokenKind.Whitespaces, " ") }
+                            TrailingTrivia = [new(TokenKind.Whitespaces, " ")]
                         };
+                        item.Comma = syntaxToken;
                     }
 
                     rowArray.Items.Add(item);
@@ -369,15 +369,15 @@ namespace Calibration.IO.toml
                 {
                     rowItem.Comma = new SyntaxToken(TokenKind.Comma, ",")
                     {
-                        TrailingTrivia = new List<SyntaxTrivia> { new(TokenKind.NewLine, "\n") }
+                        TrailingTrivia = [new(TokenKind.NewLine, "\n")]
                     };
                 }
                 else
                 {
-                    rowArray.CloseBracket.TrailingTrivia = new List<SyntaxTrivia>
-                    {
+                    rowArray.CloseBracket.TrailingTrivia =
+                    [
                         new(TokenKind.NewLine, "\n")
-                    };
+                    ];
                 }
 
                 coeffsArray.Items.Add(rowItem);
@@ -449,10 +449,10 @@ namespace Calibration.IO.toml
                 {
                     item.Comma = new SyntaxToken(TokenKind.Comma, ",")
                     {
-                        TrailingTrivia = new List<SyntaxTrivia>
-                        {
+                        TrailingTrivia =
+                        [
                             new(TokenKind.Whitespaces, " ")
-                        }
+                        ]
                     };
                 }
 

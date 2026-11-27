@@ -88,16 +88,12 @@ namespace Calibration.IO.toml
 
         internal static void Print(Identification id, Exception ex, string path)
         {
-            using StreamWriter stream = new(path, false);
-            Console.WriteLine(ex.Message);
-            stream.WriteLine(ex.Message);
-
-            stream.Flush();
+            throw new NotImplementedException();
         }
 
         public static void Write(Identification id, TemperatureData data, TemperatureCalibrationResult result, string path)
         {
-
+            throw new NotImplementedException();
         }
         #endregion
     }

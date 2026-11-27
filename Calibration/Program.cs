@@ -18,7 +18,7 @@ internal class Program
         const string defaultPressureResultFile = "PressureReport.toml";
 
 
-        string dataFileName = string.Empty;
+        string dataFileName;
         bool firstParametrType = true;
 
         if (calibrationType.EndsWith(".toml"))
@@ -64,12 +64,12 @@ internal class Program
                 || args[1].Contains(".toml"))
                 ? args[1] : dataFileOnlyName + " Report.toml";
         }
-        /*
+        
         if (temperature)
         {
+            /*
             dataFileName = noParameters ? defaultTemperatureFile : dataFileName;
             resultFileName = noParameters ? defaultTemperatureResultFile : resultFileName;
-
             try
             {
                 TemperatureData temperatureData = Temperature.ReadFile(dataFileName);
@@ -103,8 +103,8 @@ internal class Program
             Console.WriteLine();
             Console.WriteLine();
             Console.WriteLine();
+            */
         }
-        */
         if (pressure)
         {
             dataFileName = noParameters && firstParametrType ? defaultPressureFile : dataFileName;
