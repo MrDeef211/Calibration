@@ -81,7 +81,12 @@ namespace Calibration.IO.toml
             if (calibratedPoints < indexes.Length)
                 Array.Resize(ref indexes, calibratedPoints);
 
-            var time = (TomlDateTime)identificationBlock["timestamp"];
+            TomlDateTime? time = null;
+            try
+            {
+                time = (TomlDateTime)identificationBlock["timestamp"];
+            }
+            catch { }
 
             bool normalize = (string)paramsBlock["normalize"] == "true";
 
@@ -92,7 +97,7 @@ namespace Calibration.IO.toml
 
 
             var identification = new Identification(
-                time.DateTime,
+                time?.DateTime,
                 (string)identificationBlock["model"],
                 (string)identificationBlock["serial_number"],
                 (string)identificationBlock["software_version"],
@@ -142,6 +147,7 @@ namespace Calibration.IO.toml
                 AddKeyValue(idTable, "software_version", new StringValueSyntax(id.SoftwareVersion), "Версия ПО");
                 AddKeyValue(idTable, "stand_id", new StringValueSyntax(id.StandId), "Идентификатор стенда");
                 AddKeyValue(idTable, "user", new StringValueSyntax(id.User), "Пользователь");
+                AddKeyValue(idTable, "type", new StringValueSyntax("Pressure"), "Тип калибровки");
 
                 doc.Tables.Add(idTable);
             }
@@ -200,6 +206,7 @@ namespace Calibration.IO.toml
             AddKeyValue(idTable, "software_version", new StringValueSyntax(id.SoftwareVersion), "Версия ПО");
             AddKeyValue(idTable, "stand_id", new StringValueSyntax(id.StandId), "Идентификатор стенда");
             AddKeyValue(idTable, "user", new StringValueSyntax(id.User), "Пользователь");
+            AddKeyValue(idTable, "type", new StringValueSyntax("Pressure"), "Тип калибровки");
             doc.Tables.Add(idTable);
 
             // [model_parameters]

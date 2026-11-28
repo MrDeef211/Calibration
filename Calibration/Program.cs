@@ -1,8 +1,8 @@
 ﻿using Calibration.IO.toml;
 using Core;
+using Core.Model.Exceptions;
 using Core.Model.Pressure;
 using Core.Model.Reports;
-using System.Runtime.InteropServices.JavaScript;
 using Tomlyn;
 using Tomlyn.Model;
 
@@ -21,10 +21,8 @@ internal class Program
             args.Length > 0
             ? args[0] : string.Empty;
 
-        const string defaultTemperatureFile = "TemperatureInput.toml";
-        const string defaultPressureFile = "PressureInput.toml";
-        const string defaultTemperatureResultFile = "TemperatureReport.toml";
-        const string defaultPressureResultFile = "PressureReport.toml";
+        const string defaultFile = "Data.toml";
+        const string defaultResultFile = " Report.toml";
 
 
         string dataFileName;
@@ -34,7 +32,6 @@ internal class Program
         if (HasValidExtension(firstArg))
         {
             dataFileName = firstArg;
-            firstArgName = true;
 
             string? calibrationType = null;
 
@@ -42,6 +39,8 @@ internal class Program
             {
                 if (File.Exists(dataFileName))
                 {
+                    firstArgName = true;
+
                     string text = File.ReadAllText(dataFileName);
 
                     TomlTable? root = TomlSerializer.Deserialize(text, CalibrationTomlContext.Default.TomlTable);
@@ -50,8 +49,16 @@ internal class Program
 
                     calibrationType = (string?)identificationBlock?["type"];
                 }
+                else
+                {
+                    throw new FileErrorException("Указанный файл не существует");
+                }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Pressure.Write(null, null, ex, "error " + dataFileName);
+                return;
+            }
 
             type = calibrationType?.ToLowerInvariant() switch
             {
@@ -72,12 +79,10 @@ internal class Program
             if (type == null && args.Length > 0)
                 return;
 
-            dataFileName = (args.ElementAtOrDefault(1), type) switch
+            dataFileName = args.ElementAtOrDefault(1) switch
             {
-                (string file, _) when HasValidExtension(file) => file,
-                (_, CalibrateType.Temperature) => defaultTemperatureFile,
-                (_, CalibrateType.Pressure) => defaultPressureFile,
-                _ => string.Empty
+                string file when HasValidExtension(file) => file,
+                _ => defaultFile
             };
         }
 
@@ -87,20 +92,21 @@ internal class Program
 
         string resultFileName = "";
 
-        if (!unknownType && !firstArgName)
+        if (!firstArgName)
         {
             string dataFileOnlyName = Path.GetFileNameWithoutExtension(dataFileName);
 
             resultFileName = args.Length > 2 && HasValidExtension(args[2])
-                ? args[2] : dataFileOnlyName + " Report.toml";
+                ? args[2] : dataFileOnlyName + defaultResultFile;
         }
-        else if (!unknownType && firstArgName)
+        else if (firstArgName)
         {
             string dataFileOnlyName = Path.GetFileNameWithoutExtension(dataFileName); ;
 
-            resultFileName = args.Length > 1 && HasValidExtension(args[1]) 
-                ? args[1] : dataFileOnlyName + " Report.toml";
+            resultFileName = args.Length > 1 && HasValidExtension(args[1])
+                ? args[1] : dataFileOnlyName + defaultResultFile;
         }
+
 
         if (temperature)
         {
@@ -144,8 +150,7 @@ internal class Program
         }
         if (pressure)
         {
-            dataFileName = unknownType ? defaultPressureFile : dataFileName;
-            resultFileName = unknownType ? defaultPressureResultFile : resultFileName;
+            string pressureResultFileName = unknownType ? "Pressure " + resultFileName : resultFileName;
 
             PressureData? pressureData = null;
             Identification? id = null;
@@ -156,12 +161,11 @@ internal class Program
 
                 PressureCalibrationResult result = Calibrator.CalibratePressure(pressureData);
 
-                Pressure.Write(id, pressureData, result, resultFileName);
+                Pressure.Write(id, pressureData, result, pressureResultFileName);
             }
             catch (Exception ex)
             {
-                Pressure.Write(id, pressureData, ex, resultFileName);
-                return;
+                Pressure.Write(id, pressureData, ex, "error " + pressureResultFileName);
             }
         }
 
